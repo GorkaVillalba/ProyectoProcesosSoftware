@@ -1,0 +1,15 @@
+# Java y Gradle
+/build/
+/.gradle/
+/bin/
+
+# Eclipse
+.settings/
+.project
+.classpath
+.metadata/
+
+# Spring Boot y base de datos
+*.log
+*.sql
+.DS_Store
