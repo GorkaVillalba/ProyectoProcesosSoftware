@@ -5,8 +5,9 @@ import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 
-@Data // Genera getters, setters, toString, etc. por Lombok
-@Entity // Indica que esto es una tabla en la BD
+
+@Data
+@Entity
 @Table(name = "usuarios")
 public class Usuario {
 
@@ -14,17 +15,23 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "El nombre es obligatorio")
+    private String nombre;
+
     @NotBlank(message = "El email es obligatorio")
     @Email(message = "Formato de email inválido")
-    @Column(unique = true) // No permite emails repetidos a nivel DB
+    @Column(unique = true)
     private String email;
 
     @NotBlank(message = "La contraseña es obligatoria")
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Rol rol;
+
     private LocalDateTime fechaRegistro;
 
-    // Se ejecuta automáticamente antes de guardar en la DB
     @PrePersist
     protected void onCreate() {
         this.fechaRegistro = LocalDateTime.now();
