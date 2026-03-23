@@ -1,1 +1,51 @@
-# ProyectoProcesosSoftware
+# EventPass - Plataforma de Eventos y Entradas
+
+## Descripción
+EventPass es una plataforma web que permite a organizadores crear y gestionar eventos,
+y a asistentes comprar entradas con precio dinámico según ocupación.
+
+## Stack Tecnológico
+- **Backend:** Java 17 + Spring Boot 3.2
+- **Persistencia:** JPA/Hibernate + MySQL (prod) / H2 (dev)
+- **Seguridad:** Spring Security + JWT
+- **Testing:** JUnit 5 + Mockito
+- **CI/CD:** GitHub Actions
+- **Contenedores:** Docker + Docker Compose
+
+## Requisitos
+- Java 17+
+- Gradle 8+
+- Docker y Docker Compose (para producción)
+
+## Ejecución Local (H2)
+```bash
+./gradlew bootRun
+```
+La app arranca en http://localhost:8080
+Consola H2: http://localhost:8080/h2-console
+
+## Ejecución con Docker (MySQL)
+```bash
+docker-compose up --build
+```
+
+## Endpoints Principales
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | /api/users | Registro |
+| POST | /api/auth/login | Login (JWT) |
+| GET | /api/users/{id} | Ver perfil |
+| PUT | /api/users/{id} | Editar perfil |
+| DELETE | /api/users/{id} | Dar de baja |
+| POST | /api/events | Crear evento |
+| GET | /api/events | Listar eventos |
+| GET | /api/events/{id} | Detalle evento |
+| PUT | /api/events/{id} | Editar evento |
+| DELETE | /api/events/{id} | Eliminar evento |
+
+## Equipo SCRUM
+| Rol | Persona |
+|-----|---------|
+| Product Owner | [NOMBRE] |
+| Scrum Master | [NOMBRE] |
+| Desarrolladores | [NOMBRES] |
