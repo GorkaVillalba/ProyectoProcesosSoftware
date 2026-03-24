@@ -40,7 +40,7 @@ public class EventoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventoResponseDTO> detalle(@PathVariable Long id) {
+    public ResponseEntity<EventoResponseDTO> detalle(@PathVariable("id") Long id) {
         return ResponseEntity.ok(eventoService.obtenerDetalle(id));
     }
 
