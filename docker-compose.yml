@@ -26,7 +26,7 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: root
       JWT_SECRET: eventpass-prod-secret-key-que-debe-tener-al-menos-256-bits-segura-1234567890
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/eventpass?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/eventpass?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     depends_on:
       - mysql
 
