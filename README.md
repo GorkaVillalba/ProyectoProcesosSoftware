@@ -46,6 +46,11 @@ docker-compose up --build
 ## Equipo SCRUM
 | Rol | Persona |
 |-----|---------|
-| Product Owner | [NOMBRE] |
-| Scrum Master | [NOMBRE] |
-| Desarrolladores | [NOMBRES] |
+| Product Owner | [MikelOyarzabal] |
+| Scrum Master | [Alvaroogaarcia] |
+| Desarrolladores | [Asiersanchez10] |
+| Desarrolladores | [imZesk] |
+| Desarrolladores | [jukossound] |
+| Desarrolladores | [Benat27] |
+| Desarrolladores | [GorkaVillalba] |
+
