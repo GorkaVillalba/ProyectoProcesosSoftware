@@ -1,8 +1,10 @@
 package com.ProyectoProcesosSoftware.service;
 
+import com.ProyectoProcesosSoftware.dto.EditarUsuarioDTO;
 import com.ProyectoProcesosSoftware.dto.RegistroUsuarioDTO;
 import com.ProyectoProcesosSoftware.dto.UsuarioResponseDTO;
 import com.ProyectoProcesosSoftware.exception.DuplicateResourceException;
+import com.ProyectoProcesosSoftware.exception.UnauthorizedActionException;
 import com.ProyectoProcesosSoftware.model.Rol;
 import com.ProyectoProcesosSoftware.model.Usuario;
 import com.ProyectoProcesosSoftware.repository.UsuarioRepository;
@@ -15,13 +17,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-// T-08 (Persona 6): Tests unitarios de UsuarioService.registrar()
 @ExtendWith(MockitoExtension.class)
 class UsuarioServiceTest {
 
@@ -48,6 +50,8 @@ class UsuarioServiceTest {
         usuarioGuardado.setRol(Rol.ASISTENTE);
         usuarioGuardado.setFechaRegistro(LocalDateTime.now());
     }
+
+    // ── T-08: Tests de registro ──
 
     @Test
     @DisplayName("Registro exitoso devuelve UsuarioResponseDTO")
@@ -89,5 +93,56 @@ class UsuarioServiceTest {
 
         usuarioService.registrar(registroDTO);
         verify(passwordEncoder).encode("password123");
+    }
+
+    // ── T-13 (Persona 1): Tests de ver y editar perfil ──
+
+    @Test
+    @DisplayName("T-13: Ver perfil exitoso devuelve UsuarioResponseDTO")
+    void obtenerPerfil_exitoso() {
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioGuardado));
+
+        UsuarioResponseDTO result = usuarioService.obtenerPerfil(1L, 1L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1L);
+        assertThat(result.getEmail()).isEqualTo("juan@example.com");
+        verify(usuarioRepository).findById(1L);
+    }
+
+    @Test
+    @DisplayName("T-13: Ver perfil de otro usuario lanza UnauthorizedActionException")
+    void obtenerPerfil_otroUsuario_lanzaExcepcion() {
+        assertThatThrownBy(() -> usuarioService.obtenerPerfil(1L, 99L))
+                .isInstanceOf(UnauthorizedActionException.class);
+        verify(usuarioRepository, never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("T-13: Editar perfil exitoso devuelve usuario actualizado")
+    void editarPerfil_exitoso() {
+        EditarUsuarioDTO dto = new EditarUsuarioDTO();
+        dto.setNombre("Juan Actualizado");
+        dto.setEmail("juan@example.com");
+
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioGuardado));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioGuardado);
+
+        UsuarioResponseDTO result = usuarioService.editarPerfil(1L, dto, 1L);
+
+        assertThat(result).isNotNull();
+        verify(usuarioRepository).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("T-13: Editar perfil de otro usuario lanza UnauthorizedActionException")
+    void editarPerfil_otroUsuario_lanzaExcepcion() {
+        EditarUsuarioDTO dto = new EditarUsuarioDTO();
+        dto.setNombre("Juan");
+        dto.setEmail("juan@example.com");
+
+        assertThatThrownBy(() -> usuarioService.editarPerfil(1L, dto, 99L))
+                .isInstanceOf(UnauthorizedActionException.class);
+        verify(usuarioRepository, never()).save(any());
     }
 }
