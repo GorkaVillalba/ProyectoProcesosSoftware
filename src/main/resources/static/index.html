@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EventPass</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #17171a;
+    --surface2: #1f1f23;
+    --surface3: #27272c;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0eff4;
+    --muted: #8a899a;
+    --accent: #c8ff00;
+    --accent-dim: rgba(200,255,0,0.12);
+    --accent-text: #0d0d0f;
+    --danger: #ff5b5b;
+    --danger-dim: rgba(255,91,91,0.12);
+    --success: #3dffa0;
+    --success-dim: rgba(61,255,160,0.1);
+    --info: #5b8fff;
+    --info-dim: rgba(91,143,255,0.12);
+    --radius: 10px;
+    --radius-lg: 16px;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+
+  /* ─── NAV ─── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,13,15,0.88); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2rem; height: 60px;
+  }
+  .logo { font-family: var(--font-head); font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+  .logo span { color: var(--accent); }
+  .nav-actions { display: flex; gap: 8px; align-items: center; }
+  .nav-user { font-size: 13px; color: var(--muted); margin-right: 8px; }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    font-family: var(--font-body); font-size: 13px; font-weight: 500;
+    padding: 7px 16px; border-radius: var(--radius); border: 1px solid var(--border2);
+    background: transparent; color: var(--text); cursor: pointer; transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface2); border-color: rgba(255,255,255,0.2); }
+  .btn-accent { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  .btn-accent:hover { background: #d4ff1a; border-color: #d4ff1a; }
+  .btn-danger { background: var(--danger-dim); color: var(--danger); border-color: rgba(255,91,91,0.25); }
+  .btn-danger:hover { background: rgba(255,91,91,0.22); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ─── LAYOUT ─── */
+  .app-container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ─── HERO (landing) ─── */
+  .hero {
+    text-align: center; padding: 5rem 1rem 3rem;
+  }
+  .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,255,0,0.25); border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 500; margin-bottom: 1.5rem; }
+  .hero h1 { font-family: var(--font-head); font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 800; line-height: 1.05; letter-spacing: -2px; margin-bottom: 1rem; }
+  .hero h1 em { color: var(--accent); font-style: normal; }
+  .hero p { font-size: 1.1rem; color: var(--muted); max-width: 480px; margin: 0 auto 2rem; line-height: 1.6; }
+  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* ─── AUTH FORMS ─── */
+  .auth-wrap { max-width: 420px; margin: 3rem auto; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; }
+  .card h2 { font-family: var(--font-head); font-size: 1.4rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .card .sub { color: var(--muted); font-size: 14px; margin-bottom: 1.75rem; }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .form-group input, .form-group select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius); color: var(--text); font-family: var(--font-body);
+    font-size: 14px; padding: 10px 14px; transition: border .15s;
+  }
+  .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+  .form-group select option { background: var(--surface2); }
+  .form-footer { font-size: 13px; color: var(--muted); text-align: center; margin-top: 1.25rem; }
+  .form-footer a { color: var(--accent); cursor: pointer; text-decoration: none; }
+
+  /* ─── EVENTS GRID ─── */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.75rem; gap: 1rem; flex-wrap: wrap; }
+  .page-header h2 { font-family: var(--font-head); font-size: 1.6rem; font-weight: 700; }
+  .search-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+  .search-bar input {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius);
+    color: var(--text); font-family: var(--font-body); font-size: 13px;
+    padding: 8px 14px; width: 180px;
+  }
+  .search-bar input:focus { outline: none; border-color: var(--accent); }
+
+  .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .event-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.25rem; cursor: pointer;
+    transition: border-color .15s, transform .15s;
+  }
+  .event-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .event-card .ec-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
+  .event-card .ec-title { font-family: var(--font-head); font-size: 1rem; font-weight: 700; line-height: 1.3; }
+  .badge { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 100px; white-space: nowrap; }
+  .badge-pub { background: var(--success-dim); color: var(--success); }
+  .badge-bor { background: var(--surface3); color: var(--muted); }
+  .badge-ago { background: var(--danger-dim); color: var(--danger); }
+  .badge-fin { background: rgba(255,255,255,0.06); color: var(--muted); }
+  .event-card .ec-meta { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; margin-bottom: 1rem; }
+  .event-card .ec-meta span::before { margin-right: 5px; }
+  .ec-footer { display: flex; align-items: center; justify-content: space-between; }
+  .price-tag { font-family: var(--font-head); font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+  .capacity-bar { background: var(--surface3); border-radius: 100px; height: 4px; width: 80px; overflow: hidden; }
+  .capacity-fill { background: var(--accent); height: 100%; border-radius: 100px; transition: width .3s; }
+  .capacity-text { font-size: 11px; color: var(--muted); margin-top: 3px; text-align: right; }
+
+  /* ─── EVENT DETAIL / MODAL ─── */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
+  .overlay.hidden { display: none; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg); width: 100%; max-width: 520px;
+    max-height: 90vh; overflow-y: auto; padding: 2rem;
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+  .modal-header h3 { font-family: var(--font-head); font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
+  .close-btn { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; padding: 2px 6px; line-height: 1; }
+  .close-btn:hover { color: var(--text); }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+  .detail-item label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 3px; }
+  .detail-item span { font-size: 14px; font-weight: 500; }
+  .desc-block { background: var(--surface2); border-radius: var(--radius); padding: 14px; font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ─── EVENT FORM ─── */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius); color: var(--text); font-family: var(--font-body);
+    font-size: 14px; padding: 10px 14px; resize: vertical; min-height: 80px;
+  }
+  .form-group textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* ─── PROFILE ─── */
+  .profile-card { max-width: 480px; }
+  .profile-avatar {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: var(--accent-dim); border: 2px solid rgba(200,255,0,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-head); font-size: 1.3rem; font-weight: 800; color: var(--accent);
+    margin-bottom: 1.25rem;
+  }
+  .profile-name { font-family: var(--font-head); font-size: 1.4rem; font-weight: 700; }
+  .profile-role { font-size: 13px; margin-top: 3px; margin-bottom: 1.5rem; }
+  .role-org { color: var(--accent); }
+  .role-ast { color: var(--info); }
+  .profile-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; }
+  .profile-field { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .profile-field label { color: var(--muted); }
+
+  /* ─── ALERTS ─── */
+  .alert { border-radius: var(--radius); padding: 12px 16px; font-size: 13px; margin-bottom: 1rem; }
+  .alert-err { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(255,91,91,0.2); }
+  .alert-ok  { background: var(--success-dim); color: var(--success); border: 1px solid rgba(61,255,160,0.2); }
+
+  /* ─── EMPTY ─── */
+  .empty { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+  .empty .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+  .empty p { font-size: 14px; }
+
+  /* ─── LOADER ─── */
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loader-wrap { display: flex; justify-content: center; padding: 3rem; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+    nav { padding: 0 1rem; }
+    .app-container { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav>
+  <div class="logo">Event<span>Pass</span></div>
+  <div class="nav-actions" id="nav-actions">
+    <button class="btn btn-sm" onclick="showPage('login')">Iniciar sesión</button>
+    <button class="btn btn-accent btn-sm" onclick="showPage('register')">Registrarse</button>
+  </div>
+</nav>
+
+<!-- ══════════════ PAGES ══════════════ -->
+<div class="app-container">
+
+  <!-- LANDING -->
+  <div class="page active" id="page-landing">
+    <div class="hero">
+      <div class="hero-badge">🎟 Plataforma de eventos con precio dinámico</div>
+      <h1>Crea y vive<br><em>experiencias</em><br>únicas</h1>
+      <p>Organiza eventos, gestiona aforos y compra entradas con precio justo según disponibilidad.</p>
+      <div class="hero-actions">
+        <button class="btn btn-accent" onclick="showPage('register')">Empezar gratis</button>
+        <button class="btn" onclick="showPage('events')">Explorar eventos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="page" id="page-login">
+    <div class="auth-wrap">
+      <div class="card">
+        <h2>Bienvenido de nuevo</h2>
+        <p class="sub">Inicia sesión en tu cuenta</p>
+        <div id="login-alert"></div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="tu@email.com">
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button class="btn btn-accent" style="width:100%;margin-top:0.5rem" onclick="doLogin()" id="login-btn">Iniciar sesión</button>
+        <p class="form-footer">¿No tienes cuenta? <a onclick="showPage('register')">Regístrate</a></p>
+        <p class="form-footer" style="margin-top:0.5rem"><a onclick="showPage('forgot')">¿Olvidaste tu contraseña?</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER -->
+  <div class="page" id="page-register">
+    <div class="auth-wrap">
+      <div class="card">
+        <h2>Crear cuenta</h2>
+        <p class="sub">Únete a EventPass hoy</p>
+        <div id="reg-alert"></div>
+        <div class="form-group">
+          <label>Nombre completo</label>
+          <input type="text" id="reg-name" placeholder="Tu nombre">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="tu@email.com">
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group">
+          <label>Rol</label>
+          <select id="reg-rol">
+            <option value="ASISTENTE">Asistente — comprar entradas</option>
+            <option value="ORGANIZADOR">Organizador — crear eventos</option>
+          </select>
+        </div>
+        <button class="btn btn-accent" style="width:100%;margin-top:0.5rem" onclick="doRegister()" id="reg-btn">Crear cuenta</button>
+        <p class="form-footer">¿Ya tienes cuenta? <a onclick="showPage('login')">Inicia sesión</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD -->
+  <div class="page" id="page-forgot">
+    <div class="auth-wrap">
+      <div class="card">
+        <h2>Recuperar contraseña</h2>
+        <p class="sub">Te enviaremos instrucciones a tu email</p>
+        <div id="forgot-alert"></div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="forgot-email" placeholder="tu@email.com">
+        </div>
+        <button class="btn btn-accent" style="width:100%;margin-top:0.5rem" onclick="doForgot()">Enviar instrucciones</button>
+        <p class="form-footer"><a onclick="showPage('login')">← Volver al login</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENTS LIST -->
+  <div class="page" id="page-events">
+    <div class="page-header">
+      <h2>Eventos</h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="search-bar">
+          <input type="text" id="search-nombre" placeholder="Buscar nombre..." oninput="debounceSearch()">
+          <input type="text" id="search-loc" placeholder="Ubicación..." oninput="debounceSearch()">
+        </div>
+        <button class="btn btn-accent btn-sm" id="create-event-btn" style="display:none" onclick="openCreateEvent()">+ Crear evento</button>
+      </div>
+    </div>
+    <div id="events-list"></div>
+  </div>
+
+  <!-- MY EVENTS (organizer) -->
+  <div class="page" id="page-my-events">
+    <div class="page-header">
+      <h2>Mis eventos</h2>
+      <button class="btn btn-accent btn-sm" onclick="openCreateEvent()">+ Nuevo evento</button>
+    </div>
+    <div id="my-events-list"></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="page" id="page-profile">
+    <div class="profile-card card">
+      <div class="profile-avatar" id="profile-avatar"></div>
+      <div class="profile-name" id="profile-name"></div>
+      <div class="profile-role" id="profile-role"></div>
+      <div class="profile-fields">
+        <div class="profile-field"><label>Email</label><span id="pf-email"></span></div>
+        <div class="profile-field"><label>Rol</label><span id="pf-rol"></span></div>
+        <div class="profile-field"><label>Miembro desde</label><span id="pf-fecha"></span></div>
+      </div>
+      <div id="profile-alert"></div>
+      <div id="profile-edit-form" style="display:none">
+        <div class="form-group"><label>Nombre</label><input type="text" id="edit-nombre"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="edit-email"></div>
+        <div style="display:flex;gap:8px;margin-top:0.5rem">
+          <button class="btn btn-accent btn-sm" onclick="doEditProfile()">Guardar</button>
+          <button class="btn btn-sm" onclick="cancelEditProfile()">Cancelar</button>
+        </div>
+      </div>
+      <div id="profile-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="startEditProfile()">Editar perfil</button>
+        <button class="btn btn-danger btn-sm" onclick="doDeleteAccount()">Eliminar cuenta</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Event Detail Modal -->
+<div class="overlay hidden" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="modal" id="detail-modal">
+    <div class="modal-header">
+      <h3 id="dm-title"></h3>
+      <button class="close-btn" onclick="closeDetailModal()">×</button>
+    </div>
+    <div id="dm-status" style="margin-bottom:1rem"></div>
+    <div class="detail-grid">
+      <div class="detail-item"><label>Fecha</label><span id="dm-fecha"></span></div>
+      <div class="detail-item"><label>Hora</label><span id="dm-hora"></span></div>
+      <div class="detail-item"><label>Ubicación</label><span id="dm-ubicacion"></span></div>
+      <div class="detail-item"><label>Organizador</label><span id="dm-org"></span></div>
+      <div class="detail-item"><label>Aforo</label><span id="dm-aforo"></span></div>
+      <div class="detail-item"><label>Precio</label><span id="dm-precio" style="color:var(--accent);font-family:var(--font-head);font-size:1.1rem"></span></div>
+    </div>
+    <div class="desc-block" id="dm-desc"></div>
+    <div style="margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px">
+        <span>Disponibilidad</span><span id="dm-cap-text"></span>
+      </div>
+      <div class="capacity-bar" style="width:100%"><div class="capacity-fill" id="dm-cap-bar"></div></div>
+    </div>
+    <div class="modal-actions" id="dm-actions"></div>
+  </div>
+</div>
+
+<!-- Create / Edit Event Modal -->
+<div class="overlay hidden" id="event-form-overlay" onclick="closeEventForm(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="ef-title">Crear evento</h3>
+      <button class="close-btn" onclick="closeEventFormModal()">×</button>
+    </div>
+    <div id="ef-alert"></div>
+    <div class="form-group">
+      <label>Nombre del evento *</label>
+      <input type="text" id="ef-nombre" placeholder="Nombre del evento">
+    </div>
+    <div class="form-group">
+      <label>Descripción</label>
+      <textarea id="ef-desc" placeholder="Describe el evento..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Fecha *</label>
+        <input type="date" id="ef-fecha">
+      </div>
+      <div class="form-group">
+        <label>Hora *</label>
+        <input type="time" id="ef-hora">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Ubicación *</label>
+      <input type="text" id="ef-ubicacion" placeholder="Ciudad, lugar...">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Aforo máximo *</label>
+        <input type="number" id="ef-aforo" placeholder="200" min="1">
+      </div>
+      <div class="form-group">
+        <label>Precio base (€) *</label>
+        <input type="number" id="ef-precio" placeholder="25.00" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-accent" onclick="doSaveEvent()" id="ef-save-btn">Crear evento</button>
+      <button class="btn" onclick="closeEventFormModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="overlay hidden" id="reset-overlay" onclick="closeReset(event)">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3>Nueva contraseña</h3>
+      <button class="close-btn" onclick="closeResetModal()">×</button>
+    </div>
+    <div id="reset-alert"></div>
+    <div class="form-group"><label>Token de recuperación</label><input type="text" id="reset-token" placeholder="Pega el token aquí"></div>
+    <div class="form-group"><label>Nueva contraseña</label><input type="password" id="reset-pass" placeholder="Mínimo 6 caracteres"></div>
+    <button class="btn btn-accent" style="width:100%" onclick="doResetPassword()">Cambiar contraseña</button>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8080/api';
+let token = null, currentUser = null, editingEventId = null, searchTimer = null;
+
+/* ═══════ UTILS ═══════ */
+function el(id) { return document.getElementById(id); }
+function showAlert(id, msg, type='err') {
+  el(id).innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+function clearAlert(id) { el(id).innerHTML = ''; }
+function setLoading(btnId, loading) {
+  const b = el(btnId);
+  if (!b) return;
+  b.disabled = loading;
+  b.dataset.orig = b.dataset.orig || b.textContent;
+  b.innerHTML = loading ? '<span class="spinner"></span>' : b.dataset.orig;
+}
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', {day:'2-digit',month:'long',year:'numeric'}) : '—'; }
+function badgeHtml(estado) {
+  const map = { PUBLICADO:'badge-pub', BORRADOR:'badge-bor', AGOTADO:'badge-ago', FINALIZADO:'badge-fin', CANCELADO:'badge-ago' };
+  return `<span class="badge ${map[estado]||'badge-bor'}">${estado}</span>`;
+}
+function initials(name) { return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+
+/* ═══════ AUTH STATE ═══════ */
+function saveAuth(data) {
+  token = data.token;
+  currentUser = { id: data.id, email: data.email, rol: data.rol };
+  localStorage.setItem('ep_token', token);
+  localStorage.setItem('ep_user', JSON.stringify(currentUser));
+}
+function loadAuth() {
+  token = localStorage.getItem('ep_token');
+  const u = localStorage.getItem('ep_user');
+  if (u) currentUser = JSON.parse(u);
+}
+function logout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('ep_token'); localStorage.removeItem('ep_user');
+  renderNav(); showPage('landing');
+}
+function headers() { return { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` }; }
+
+/* ═══════ NAV ═══════ */
+function renderNav() {
+  const na = el('nav-actions');
+  if (currentUser) {
+    const isOrg = currentUser.rol === 'ORGANIZADOR';
+    na.innerHTML = `
+      <span class="nav-user">${currentUser.email}</span>
+      <button class="btn btn-sm" onclick="showPage('events')">Eventos</button>
+      ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button>` : ''}
+      <button class="btn btn-sm" onclick="showPage('profile')">Perfil</button>
+      <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
+    `;
+    el('create-event-btn').style.display = isOrg ? 'inline-flex' : 'none';
+  } else {
+    na.innerHTML = `
+      <button class="btn btn-sm" onclick="showPage('login')">Iniciar sesión</button>
+      <button class="btn btn-accent btn-sm" onclick="showPage('register')">Registrarse</button>
+    `;
+  }
+}
+
+/* ═══════ PAGE ROUTER ═══════ */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el('page-'+name)?.classList.add('active');
+  window.scrollTo(0,0);
+  if (name === 'events') loadEvents();
+  if (name === 'my-events') loadMyEvents();
+  if (name === 'profile') loadProfile();
+}
+
+/* ═══════ API CALLS ═══════ */
+async function apiFetch(path, opts={}) {
+  const res = await fetch(API + path, {
+    headers: headers(), ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (res.status === 204) return null;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+  return data;
+}
+
+/* ═══════ AUTH ═══════ */
+async function doLogin() {
+  clearAlert('login-alert');
+  setLoading('login-btn', true);
+  try {
+    const data = await apiFetch('/auth/login', { method:'POST', body:{ email:el('login-email').value, password:el('login-pass').value } });
+    saveAuth(data); renderNav(); showPage('events');
+  } catch(e) { showAlert('login-alert', e.message); }
+  finally { setLoading('login-btn', false); }
+}
+
+async function doRegister() {
+  clearAlert('reg-alert');
+  setLoading('reg-btn', true);
+  try {
+    await apiFetch('/users', { method:'POST', body:{ nombre:el('reg-name').value, email:el('reg-email').value, password:el('reg-pass').value, rol:el('reg-rol').value } });
+    showAlert('reg-alert', 'Cuenta creada. Ahora inicia sesión.', 'ok');
+    setTimeout(() => showPage('login'), 1500);
+  } catch(e) { showAlert('reg-alert', e.message); }
+  finally { setLoading('reg-btn', false); }
+}
+
+async function doForgot() {
+  clearAlert('forgot-alert');
+  try {
+    const data = await apiFetch('/auth/forgot-password', { method:'POST', body:{ email:el('forgot-email').value } });
+    showAlert('forgot-alert', data.message || 'Revisa tu email.', 'ok');
+    setTimeout(() => { el('reset-overlay').classList.remove('hidden'); }, 1200);
+  } catch(e) { showAlert('forgot-alert', e.message); }
+}
+
+async function doResetPassword() {
+  clearAlert('reset-alert');
+  try {
+    const data = await apiFetch('/auth/reset-password', { method:'POST', body:{ token:el('reset-token').value, nuevaPassword:el('reset-pass').value } });
+    showAlert('reset-alert', data.message, 'ok');
+    setTimeout(() => { closeResetModal(); showPage('login'); }, 1500);
+  } catch(e) { showAlert('reset-alert', e.message); }
+}
+
+/* ═══════ EVENTS ═══════ */
+async function loadEvents() {
+  const list = el('events-list');
+  list.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  const nombre = el('search-nombre')?.value || '';
+  const ubicacion = el('search-loc')?.value || '';
+  try {
+    const params = new URLSearchParams({ page:0, size:20 });
+    if (nombre) params.set('nombre', nombre);
+    if (ubicacion) params.set('ubicacion', ubicacion);
+    const data = await apiFetch('/events?' + params);
+    renderEventCards(list, data.content || [], false);
+  } catch(e) {
+    list.innerHTML = `<div class="alert alert-err">${e.message}</div>`;
+  }
+}
+
+async function loadMyEvents() {
+  if (!currentUser) return showPage('login');
+  const list = el('my-events-list');
+  list.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  try {
+    const data = await apiFetch('/events?page=0&size=50');
+    const mine = (data.content||[]).filter(e => e.organizadorId === currentUser.id);
+    renderEventCards(list, mine, true);
+  } catch(e) {
+    list.innerHTML = `<div class="alert alert-err">${e.message}</div>`;
+  }
+}
+
+function renderEventCards(container, events, isOwner) {
+  if (!events.length) {
+    container.innerHTML = `<div class="empty"><div class="icon">🎭</div><p>No hay eventos disponibles</p></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="events-grid">${events.map(e => eventCardHtml(e, isOwner)).join('')}</div>`;
+}
+
+function eventCardHtml(e, isOwner) {
+  const pct = e.aforoMaximo ? Math.round((e.entradasVendidas / e.aforoMaximo) * 100) : 0;
+  return `
+    <div class="event-card" onclick="openDetail(${e.id})">
+      <div class="ec-header">
+        <div class="ec-title">${e.nombre}</div>
+        ${badgeHtml(e.estado)}
+      </div>
+      <div class="ec-meta">
+        <span>📅 ${formatDate(e.fecha)} · ${e.hora ? e.hora.slice(0,5) : ''}</span>
+        <span>📍 ${e.ubicacion}</span>
+        <span>👤 ${e.organizadorNombre}</span>
+      </div>
+      <div class="ec-footer">
+        <div class="price-tag">€${parseFloat(e.precioBase).toFixed(2)}</div>
+        <div>
+          <div class="capacity-bar"><div class="capacity-fill" style="width:${pct}%"></div></div>
+          <div class="capacity-text">${e.plazasDisponibles} plazas</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(loadEvents, 350);
+}
+
+/* ═══════ EVENT DETAIL ═══════ */
+async function openDetail(id) {
+  el('detail-overlay').classList.remove('hidden');
+  el('dm-title').textContent = 'Cargando...';
+  el('dm-actions').innerHTML = '';
+  try {
+    const e = await apiFetch('/events/' + id);
+    el('dm-title').textContent = e.nombre;
+    el('dm-status').innerHTML = badgeHtml(e.estado);
+    el('dm-fecha').textContent = formatDate(e.fecha);
+    el('dm-hora').textContent = e.hora ? e.hora.slice(0,5) : '—';
+    el('dm-ubicacion').textContent = e.ubicacion;
+    el('dm-org').textContent = e.organizadorNombre;
+    el('dm-aforo').textContent = `${e.entradasVendidas} / ${e.aforoMaximo}`;
+    el('dm-precio').textContent = `€${parseFloat(e.precioBase).toFixed(2)}`;
+    el('dm-desc').textContent = e.descripcion || 'Sin descripción';
+    const pct = e.aforoMaximo ? Math.round((e.entradasVendidas/e.aforoMaximo)*100) : 0;
+    el('dm-cap-bar').style.width = pct + '%';
+    el('dm-cap-text').textContent = `${e.plazasDisponibles} plazas disponibles (${100-pct}%)`;
+
+    let actions = '';
+    if (currentUser && currentUser.id === e.organizadorId) {
+      actions += `<button class="btn btn-sm" onclick="openEditEvent(${e.id})">Editar</button>`;
+      if (e.entradasVendidas === 0) {
+        actions += `<button class="btn btn-danger btn-sm" onclick="doDeleteEvent(${e.id})">Eliminar</button>`;
+      }
+    }
+    el('dm-actions').innerHTML = actions || (currentUser ? '' : '<p style="font-size:13px;color:var(--muted)">Inicia sesión para más opciones</p>');
+  } catch(e) {
+    el('dm-title').textContent = 'Error al cargar';
+  }
+}
+
+function closeDetail(e) { if (e.target === el('detail-overlay')) closeDetailModal(); }
+function closeDetailModal() { el('detail-overlay').classList.add('hidden'); }
+
+/* ═══════ CREATE / EDIT EVENT ═══════ */
+function openCreateEvent() {
+  if (!currentUser) return showPage('login');
+  editingEventId = null;
+  el('ef-title').textContent = 'Crear evento';
+  el('ef-save-btn').textContent = 'Crear evento';
+  el('ef-save-btn').dataset.orig = 'Crear evento';
+  ['ef-nombre','ef-desc','ef-fecha','ef-hora','ef-ubicacion','ef-aforo','ef-precio'].forEach(id => el(id).value = '');
+  clearAlert('ef-alert');
+  el('event-form-overlay').classList.remove('hidden');
+}
+
+async function openEditEvent(id) {
+  closeDetailModal();
+  editingEventId = id;
+  el('ef-title').textContent = 'Editar evento';
+  el('ef-save-btn').textContent = 'Guardar cambios';
+  el('ef-save-btn').dataset.orig = 'Guardar cambios';
+  clearAlert('ef-alert');
+  el('event-form-overlay').classList.remove('hidden');
+  try {
+    const e = await apiFetch('/events/' + id);
+    el('ef-nombre').value = e.nombre;
+    el('ef-desc').value = e.descripcion || '';
+    el('ef-fecha').value = e.fecha;
+    el('ef-hora').value = e.hora ? e.hora.slice(0,5) : '';
+    el('ef-ubicacion').value = e.ubicacion;
+    el('ef-aforo').value = e.aforoMaximo;
+    el('ef-precio').value = e.precioBase;
+  } catch(err) { showAlert('ef-alert', err.message); }
+}
+
+async function doSaveEvent() {
+  clearAlert('ef-alert');
+  const body = {
+    nombre: el('ef-nombre').value, descripcion: el('ef-desc').value,
+    fecha: el('ef-fecha').value, hora: el('ef-hora').value + ':00',
+    ubicacion: el('ef-ubicacion').value,
+    aforoMaximo: parseInt(el('ef-aforo').value),
+    precioBase: parseFloat(el('ef-precio').value)
+  };
+  setLoading('ef-save-btn', true);
+  try {
+    if (editingEventId) {
+      await apiFetch('/events/' + editingEventId, { method:'PUT', body });
+    } else {
+      await apiFetch('/events', { method:'POST', body });
+    }
+    closeEventFormModal();
+    loadMyEvents();
+    showPage('my-events');
+  } catch(e) { showAlert('ef-alert', e.message); }
+  finally { setLoading('ef-save-btn', false); }
+}
+
+async function doDeleteEvent(id) {
+  if (!confirm('¿Seguro que quieres eliminar este evento?')) return;
+  try {
+    await apiFetch('/events/' + id, { method:'DELETE' });
+    closeDetailModal();
+    loadMyEvents();
+  } catch(e) { alert(e.message); }
+}
+
+function closeEventForm(e) { if (e.target === el('event-form-overlay')) closeEventFormModal(); }
+function closeEventFormModal() { el('event-form-overlay').classList.add('hidden'); }
+
+/* ═══════ PROFILE ═══════ */
+async function loadProfile() {
+  if (!currentUser) return showPage('login');
+  try {
+    const u = await apiFetch('/users/' + currentUser.id);
+    el('profile-avatar').textContent = initials(u.nombre);
+    el('profile-name').textContent = u.nombre;
+    el('profile-role').textContent = u.rol === 'ORGANIZADOR' ? '🎪 Organizador' : '🎟 Asistente';
+    el('profile-role').className = 'profile-role ' + (u.rol === 'ORGANIZADOR' ? 'role-org' : 'role-ast');
+    el('pf-email').textContent = u.email;
+    el('pf-rol').textContent = u.rol;
+    el('pf-fecha').textContent = formatDate(u.fechaRegistro);
+    el('edit-nombre').value = u.nombre;
+    el('edit-email').value = u.email;
+    clearAlert('profile-alert');
+  } catch(e) { showAlert('profile-alert', e.message); }
+}
+
+function startEditProfile() {
+  el('profile-edit-form').style.display = 'block';
+  el('profile-actions').style.display = 'none';
+}
+function cancelEditProfile() {
+  el('profile-edit-form').style.display = 'none';
+  el('profile-actions').style.display = 'flex';
+}
+
+async function doEditProfile() {
+  clearAlert('profile-alert');
+  try {
+    const u = await apiFetch('/users/' + currentUser.id, { method:'PUT', body:{ nombre:el('edit-nombre').value, email:el('edit-email').value } });
+    currentUser.email = u.email;
+    localStorage.setItem('ep_user', JSON.stringify(currentUser));
+    renderNav(); cancelEditProfile(); loadProfile();
+    showAlert('profile-alert', 'Perfil actualizado correctamente', 'ok');
+  } catch(e) { showAlert('profile-alert', e.message); }
+}
+
+async function doDeleteAccount() {
+  if (!confirm('¿Seguro que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) return;
+  try {
+    await apiFetch('/users/' + currentUser.id, { method:'DELETE' });
+    logout();
+  } catch(e) { showAlert('profile-alert', e.message); }
+}
+
+/* ═══════ MODALS CLOSE ═══════ */
+function closeReset(e) { if (e.target === el('reset-overlay')) closeResetModal(); }
+function closeResetModal() { el('reset-overlay').classList.add('hidden'); }
+
+/* ═══════ INIT ═══════ */
+loadAuth(); renderNav();
+</script>
+</body>
+</html>
