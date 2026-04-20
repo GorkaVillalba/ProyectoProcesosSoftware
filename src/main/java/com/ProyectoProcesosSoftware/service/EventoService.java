@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 // ═══════════════════════════════════════════════════════════════
 @Service
 public class EventoService {
+    @Autowired
+    private PricingContext pricingContext;
 
     @Autowired
     private EventoRepository eventoRepository;
@@ -96,6 +98,5 @@ public class EventoService {
         }
         eventoRepository.delete(evento);
     }
-    @Autowired
-    private PricingContext pricingContext;
+    
 }
