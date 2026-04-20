@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 // T-17/T-22/T-24 tests (Persona 6)
 @ExtendWith(MockitoExtension.class)
@@ -70,9 +71,9 @@ class EventoServiceTest {
         editarDTO.setAforoMaximo(600);
         editarDTO.setPrecioBase(new BigDecimal("35"));
 
-        when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
+        lenient().when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
             .thenReturn(new BigDecimal("100.00"));
-        when(pricingContext.nombreEstrategia(anyInt(), anyInt()))
+        lenient().when(pricingContext.nombreEstrategia(anyInt(), anyInt()))
             .thenReturn("EarlyBird");
     }
 
