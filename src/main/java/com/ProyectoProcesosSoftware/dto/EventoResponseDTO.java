@@ -17,6 +17,8 @@ public class EventoResponseDTO {
     private Integer entradasVendidas;
     private Integer plazasDisponibles;
     private BigDecimal precioBase;
+    private BigDecimal precioActual;
+    private String estrategiaPrecio;
     private String estado;
     private String organizadorNombre;
     private Long organizadorId;

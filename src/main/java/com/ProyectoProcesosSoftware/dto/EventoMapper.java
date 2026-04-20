@@ -1,9 +1,11 @@
 package com.ProyectoProcesosSoftware.dto;
 
 import com.ProyectoProcesosSoftware.model.Evento;
+import com.ProyectoProcesosSoftware.pricing.PricingContext;
 
 public class EventoMapper {
-    public static EventoResponseDTO toResponseDTO(Evento e) {
+
+    public static EventoResponseDTO toResponseDTO(Evento e, PricingContext pricingContext) {
         EventoResponseDTO dto = new EventoResponseDTO();
         dto.setId(e.getId());
         dto.setNombre(e.getNombre());
@@ -18,6 +20,15 @@ public class EventoMapper {
         dto.setEstado(e.getEstado().name());
         dto.setOrganizadorNombre(e.getOrganizador().getNombre());
         dto.setOrganizadorId(e.getOrganizador().getId());
+
+        // US-13: precio dinámico por Strategy
+        dto.setPrecioActual(
+            pricingContext.calcularPrecio(e.getPrecioBase(), e.getEntradasVendidas(), e.getAforoMaximo())
+        );
+        dto.setEstrategiaPrecio(
+            pricingContext.nombreEstrategia(e.getEntradasVendidas(), e.getAforoMaximo())
+        );
+
         return dto;
     }
 }

@@ -3,6 +3,7 @@ package com.ProyectoProcesosSoftware.service;
 import com.ProyectoProcesosSoftware.dto.*;
 import com.ProyectoProcesosSoftware.exception.*;
 import com.ProyectoProcesosSoftware.model.*;
+import com.ProyectoProcesosSoftware.pricing.PricingContext;
 import com.ProyectoProcesosSoftware.repository.EventoRepository;
 import com.ProyectoProcesosSoftware.repository.UsuarioRepository;
 import org.junit.jupiter.api.*;
@@ -12,9 +13,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.Optional;
+import static org.mockito.ArgumentMatchers.anyInt;
+
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 // T-17/T-22/T-24 tests (Persona 6)
@@ -23,6 +27,7 @@ class EventoServiceTest {
 
     @Mock private EventoRepository eventoRepository;
     @Mock private UsuarioRepository usuarioRepository;
+    @Mock private PricingContext pricingContext;
     @InjectMocks private EventoService eventoService;
 
     private Usuario organizador;
@@ -64,6 +69,11 @@ class EventoServiceTest {
         editarDTO.setUbicacion("VIP");
         editarDTO.setAforoMaximo(600);
         editarDTO.setPrecioBase(new BigDecimal("35"));
+
+        when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
+            .thenReturn(new BigDecimal("100.00"));
+        when(pricingContext.nombreEstrategia(anyInt(), anyInt()))
+            .thenReturn("EarlyBird");
     }
 
     @Test void crear_exitoso() {

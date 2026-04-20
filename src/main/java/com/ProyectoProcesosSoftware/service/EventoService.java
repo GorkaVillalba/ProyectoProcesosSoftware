@@ -1,5 +1,6 @@
 package com.ProyectoProcesosSoftware.service;
 
+import com.ProyectoProcesosSoftware.pricing.PricingContext;
 import com.ProyectoProcesosSoftware.dto.*;
 import com.ProyectoProcesosSoftware.exception.*;
 import com.ProyectoProcesosSoftware.model.*;
@@ -43,20 +44,20 @@ public class EventoService {
         evento.setEstado(EstadoEvento.BORRADOR);
         evento.setOrganizador(org);
 
-        return EventoMapper.toResponseDTO(eventoRepository.save(evento));
+        return EventoMapper.toResponseDTO(eventoRepository.save(evento), pricingContext);
     }
 
     // T-18 (Persona 5)
     public Page<EventoResponseDTO> listarEventos(String nombre, String ubicacion, Pageable pageable) {
         return eventoRepository.findByEstadoAndFiltros(EstadoEvento.PUBLICADO, nombre, ubicacion, pageable)
-                .map(EventoMapper::toResponseDTO);
+                .map(evento -> EventoMapper.toResponseDTO(evento, pricingContext));
     }
 
     // T-20 (Persona 1)
     public EventoResponseDTO obtenerDetalle(Long id) {
         Evento evento = eventoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Evento no encontrado con id: " + id));
-        return EventoMapper.toResponseDTO(evento);
+        return EventoMapper.toResponseDTO(evento, pricingContext);
     }
 
     // T-22 (Persona 6)
@@ -79,7 +80,7 @@ public class EventoService {
         evento.setAforoMaximo(dto.getAforoMaximo());
         evento.setPrecioBase(dto.getPrecioBase());
 
-        return EventoMapper.toResponseDTO(eventoRepository.save(evento));
+        return EventoMapper.toResponseDTO(eventoRepository.save(evento), pricingContext);
     }
 
     // T-24 (Persona 6)
@@ -95,4 +96,6 @@ public class EventoService {
         }
         eventoRepository.delete(evento);
     }
+    @Autowired
+    private PricingContext pricingContext;
 }
