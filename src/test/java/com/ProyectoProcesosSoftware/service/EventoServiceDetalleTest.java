@@ -2,6 +2,7 @@ package com.ProyectoProcesosSoftware.service;
 import com.ProyectoProcesosSoftware.dto.EventoResponseDTO;
 import com.ProyectoProcesosSoftware.exception.ResourceNotFoundException;
 import com.ProyectoProcesosSoftware.model.*;
+import com.ProyectoProcesosSoftware.pricing.PricingContext;
 import com.ProyectoProcesosSoftware.repository.EventoRepository;
 import com.ProyectoProcesosSoftware.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,8 @@ import java.time.LocalTime;
 import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 /**
  * T-21 (Persona 2): Tests de obtenerDetalle()
  */
@@ -26,6 +29,8 @@ class EventoServiceDetalleTest {
     private EventoRepository eventoRepository;
     @Mock
     private UsuarioRepository usuarioRepository;
+    @Mock
+    private PricingContext pricingContext;
     @InjectMocks
     private EventoService eventoService;
     private Evento evento;
@@ -48,6 +53,10 @@ class EventoServiceDetalleTest {
         evento.setPrecioBase(new BigDecimal("30.00"));
         evento.setEstado(EstadoEvento.PUBLICADO);
         evento.setOrganizador(organizador);
+        lenient().when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
+         .thenReturn(new BigDecimal("100.00"));
+        lenient().when(pricingContext.nombreEstrategia(anyInt(), anyInt()))
+         .thenReturn("EarlyBird");
     }
     @Test
     @DisplayName("Obtener detalle exitoso - devuelve EventoResponseDTO")
