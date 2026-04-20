@@ -1,7 +1,13 @@
-package com.ProyectoProcesosSoftware.pricing;
+package com.ProyectoProcesosSoftware;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.ProyectoProcesosSoftware.pricing.EarlyBirdPricing;
+import com.ProyectoProcesosSoftware.pricing.LastMinutePricing;
+import com.ProyectoProcesosSoftware.pricing.PricingContext;
+import com.ProyectoProcesosSoftware.pricing.RegularPricing;
+
 import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 
