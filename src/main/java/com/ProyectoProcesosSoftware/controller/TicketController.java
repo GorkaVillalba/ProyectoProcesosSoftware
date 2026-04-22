@@ -30,4 +30,11 @@ public class TicketController {
         Long asistenteId = Long.parseLong(auth.getName());
         return ResponseEntity.ok(ticketService.misEntradas(asistenteId));
     }
+    
+    // GET /api/tickets/my — consultar entradas del usuario autenticado
+    @GetMapping("/my")
+    public ResponseEntity<List<TicketResponseDTO>> getMisEntradas(Authentication auth) {
+        Long usuarioId = Long.parseLong(auth.getName()); // extraído del token JWT
+        return ResponseEntity.ok(ticketService.getMisEntradas(usuarioId));
+    }
 }
