@@ -1,5 +1,5 @@
 # EventPass - Plataforma de Eventos y Entradas
-
+![CI Pipeline](https://github.com/GorkaVillalba/ProyectoProcesosSoftware/actions/workflows/ci.yml/badge.svg)
 ## Descripción
 EventPass es una plataforma web que permite a organizadores crear y gestionar eventos,
 y a asistentes comprar entradas con precio dinámico según ocupación.
