@@ -24,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class TicketServiceTest {
@@ -113,10 +114,10 @@ class TicketServiceTest {
         asistente.setRol(Rol.ORGANIZADOR);
         when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
         when(usuarioRepository.findById(2L)).thenReturn(Optional.of(asistente));
-        when(ticketRepository.existsByEventoIdAndAsistenteId(1L, 2L)).thenReturn(false);
+        lenient().when(ticketRepository.existsByEventoIdAndAsistenteId(1L, 2L)).thenReturn(false); // ← lenient()
 
         assertThatThrownBy(() -> ticketService.comprarEntrada(1L, 2L))
-                .isInstanceOf(UnauthorizedActionException.class);
+            .isInstanceOf(UnauthorizedActionException.class);
     }
 
     @Test
