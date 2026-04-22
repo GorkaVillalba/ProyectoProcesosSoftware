@@ -4,6 +4,8 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.ProyectoProcesosSoftware.model.TicketStatus;
+
 @Data
 public class TicketResponseDTO {
     private Long id;
@@ -15,4 +17,5 @@ public class TicketResponseDTO {
     private BigDecimal precioFinal;
     private String estrategiaPrecio;
     private LocalDateTime fechaCompra;
+    private TicketStatus estado;
 }
