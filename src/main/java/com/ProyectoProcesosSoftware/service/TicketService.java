@@ -105,6 +105,7 @@ public class TicketService {
         dto.setPrecioFinal(t.getPrecioFinal());
         dto.setEstrategiaPrecio(estrategia);
         dto.setFechaCompra(t.getFechaCompra());
+        dto.setEstado(t.getEstado());
         return dto;
     }
 }
