@@ -26,6 +26,10 @@ public class Ticket {
     @JoinColumn(name = "asistente_id", nullable = false)
     private Usuario asistente;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TicketStatus estado = TicketStatus.VALIDO;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precioFinal;
 
@@ -36,5 +40,8 @@ public class Ticket {
     protected void onCreate() {
         this.uuid = UUID.randomUUID().toString();
         this.fechaCompra = LocalDateTime.now();
+        if (this.estado == null) {
+            this.estado = TicketStatus.VALIDO;
+        }
     }
 }
