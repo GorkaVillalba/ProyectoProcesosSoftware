@@ -184,6 +184,22 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .loader-wrap { display: flex; justify-content: center; padding: 3rem; }
 
+  /* ─── MIS ENTRADAS ─── */
+  .tickets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .ticket-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.25rem;
+    transition: border-color .15s;
+  }
+  .ticket-card:hover { border-color: var(--border2); }
+  .ticket-card .tc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
+  .ticket-card .tc-title { font-family: var(--font-head); font-size: 1rem; font-weight: 700; line-height: 1.3; }
+  .ticket-card .tc-meta { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; margin-bottom: 1rem; }
+  .ticket-uuid { font-size: 11px; color: var(--muted); font-family: monospace; background: var(--surface2); border-radius: 6px; padding: 4px 8px; margin-bottom: 1rem; word-break: break-all; }
+  .ticket-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .badge-valido { background: var(--success-dim); color: var(--success); }
+  .badge-cancelado { background: var(--danger-dim); color: var(--danger); }
+
   /* ─── RESPONSIVE ─── */
   @media (max-width: 600px) {
     .form-row { grid-template-columns: 1fr; }
@@ -313,6 +329,15 @@
       <button class="btn btn-accent btn-sm" onclick="openCreateEvent()">+ Nuevo evento</button>
     </div>
     <div id="my-events-list"></div>
+  </div>
+
+  <!-- MIS ENTRADAS -->
+  <div class="page" id="page-mis-entradas">
+    <div class="page-header">
+      <h2>Mis Entradas</h2>
+    </div>
+    <div id="mis-entradas-alert"></div>
+    <div id="mis-entradas-list"></div>
   </div>
 
   <!-- PROFILE -->
@@ -482,10 +507,12 @@ function renderNav() {
   const na = el('nav-actions');
   if (currentUser) {
     const isOrg = currentUser.rol === 'ORGANIZADOR';
+    const isAst = currentUser.rol === 'ASISTENTE';
     na.innerHTML = `
       <span class="nav-user">${currentUser.email}</span>
       <button class="btn btn-sm" onclick="showPage('events')">Eventos</button>
       ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button>` : ''}
+      ${isAst ? `<button class="btn btn-sm" onclick="showPage('mis-entradas')">Mis Entradas</button>` : ''}
       <button class="btn btn-sm" onclick="showPage('profile')">Perfil</button>
       <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
     `;
@@ -505,6 +532,7 @@ function showPage(name) {
   window.scrollTo(0,0);
   if (name === 'events') loadEvents();
   if (name === 'my-events') loadMyEvents();
+  if (name === 'mis-entradas') loadMisEntradas();
   if (name === 'profile') loadProfile();
 }
 
@@ -624,6 +652,46 @@ function eventCardHtml(e, isOwner) {
 function debounceSearch() {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(loadEvents, 350);
+}
+
+/* ═══════ MIS ENTRADAS ═══════ */
+async function loadMisEntradas() {
+  if (!currentUser) return showPage('login');
+  const list = el('mis-entradas-list');
+  list.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  try {
+    const data = await apiFetch('/tickets/my');
+    if (!data.length) {
+      list.innerHTML = `<div class="empty"><div class="icon">🎟</div><p>No tienes entradas todavía</p></div>`;
+      return;
+    }
+    list.innerHTML = `<div class="tickets-grid">${data.map(t => ticketCardHtml(t)).join('')}</div>`;
+  } catch(e) {
+    showAlert('mis-entradas-alert', e.message);
+    list.innerHTML = '';
+  }
+}
+
+function ticketCardHtml(t) {
+  const estadoClass = t.estado === 'VALIDO' ? 'badge-valido' : 'badge-cancelado';
+  const estadoLabel = t.estado === 'VALIDO' ? 'VÁLIDA' : 'CANCELADA';
+  return `
+    <div class="ticket-card">
+      <div class="tc-header">
+        <div class="tc-title">${t.eventoNombre}</div>
+        <span class="badge ${estadoClass}">${estadoLabel}</span>
+      </div>
+      <div class="tc-meta">
+        <span>📅 ${formatDate(t.eventoFecha)} · ${t.eventoHora ? t.eventoHora.slice(0,5) : ''}</span>
+        <span>📍 ${t.eventoUbicacion}</span>
+        <span>🛒 Comprada el ${formatDate(t.fechaCompra)}</span>
+      </div>
+      <div class="ticket-uuid">🔑 ${t.uuid}</div>
+      <div class="ticket-footer">
+        <div class="price-tag">€${parseFloat(t.precioFinal).toFixed(2)}</div>
+        ${t.estado === 'VALIDO' ? `<button class="btn btn-danger btn-sm" disabled title="Disponible próximamente">Cancelar</button>` : ''}
+      </div>
+    </div>`;
 }
 
 /* ═══════ EVENT DETAIL ═══════ */
