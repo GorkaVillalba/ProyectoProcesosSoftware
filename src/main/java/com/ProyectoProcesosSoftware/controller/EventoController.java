@@ -33,8 +33,8 @@ public class EventoController {
 
     @GetMapping
     public ResponseEntity<Page<EventoResponseDTO>> listar(
-            @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) String ubicacion,
+            @RequestParam(name = "nombre", required = false) String nombre,
+            @RequestParam(name = "ubicacion", required = false) String ubicacion,
             Pageable pageable) {
         return ResponseEntity.ok(eventoService.listarEventos(nombre, ubicacion, pageable));
     }

@@ -44,9 +44,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleGeneral(Exception ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor");
+        ex.printStackTrace(); // temporal para debug
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
     }
-
+    
     private ResponseEntity<ErrorResponseDTO> buildResponse(HttpStatus status, String message) {
         ErrorResponseDTO error = new ErrorResponseDTO();
         error.setTimestamp(LocalDateTime.now());
