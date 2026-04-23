@@ -1,5 +1,6 @@
 # EventPass - Plataforma de Eventos y Entradas
 ![CI Pipeline](https://github.com/GorkaVillalba/ProyectoProcesosSoftware/actions/workflows/ci.yml/badge.svg)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
 
 
 ## Descripción
