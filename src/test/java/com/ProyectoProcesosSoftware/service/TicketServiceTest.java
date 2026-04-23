@@ -1,4 +1,4 @@
-package com.ProyectoProcesosSoftware;
+package com.ProyectoProcesosSoftware.service;
 
 import com.ProyectoProcesosSoftware.dto.TicketResponseDTO;
 import com.ProyectoProcesosSoftware.exception.BusinessRuleException;
