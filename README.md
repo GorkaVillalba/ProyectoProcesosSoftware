@@ -1,5 +1,6 @@
 # EventPass - Plataforma de Eventos y Entradas
 ![CI Pipeline](https://github.com/GorkaVillalba/ProyectoProcesosSoftware/actions/workflows/ci.yml/badge.svg)
+
 ## Descripción
 EventPass es una plataforma web que permite a organizadores crear y gestionar eventos,
 y a asistentes comprar entradas con precio dinámico según ocupación.
@@ -28,6 +29,27 @@ Consola H2: http://localhost:8080/h2-console
 ```bash
 docker-compose up --build
 ```
+## Tests y cobertura
+
+Ejecutar tests unitarios:
+```bash
+./gradlew test
+```
+
+Generar el reporte de cobertura JaCoCo (HTML + XML):
+```bash
+./gradlew test jacocoTestReport
+```
+- HTML: `build/reports/jacoco/test/html/index.html`
+- XML:  `build/reports/jacoco/test/jacocoTestReport.xml`
+
+Verificar el umbral mínimo de cobertura (85% de líneas sobre packages de negocio):
+```bash
+./gradlew jacocoTestCoverageVerification
+```
+
+Se excluyen del cálculo: `config`, `dto`, `exception`, `security`, `model` y la clase `ProyectoApplication`.
+
 
 ## Endpoints Principales
 | Método | Endpoint | Descripción |
