@@ -13,15 +13,13 @@ sonar {
         property 'sonar.host.url', 'https://sonarcloud.io'
         property 'sonar.projectName', 'EventPass'
         property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
-        property 'sonar.coverage.exclusions',
-                '**/ProyectoApplication.*,**/config/**,**/dto/**,**/exception/**,**/security/**,**/model/**'
+        property 'sonar.coverage.exclusions', '**/ProyectoApplication.*,**/config/**,**/dto/**,**/exception/**,**/security/**,**/model/**'
     }
 }
 
 tasks.named('sonar') {
     dependsOn test, jacocoTestReport
 }
-
 
 group = 'com.proyectoprocesossoftware'
 version = '0.0.1-SNAPSHOT'
@@ -37,6 +35,31 @@ repositories {
     mavenCentral()
 }
 
+// ──────────────────────────────────────────────────────────────
+// T-24: Source sets separados para integración y rendimiento
+// ──────────────────────────────────────────────────────────────
+sourceSets {
+    integrationTest {
+        java.srcDir 'src/integrationTest/java'
+        resources.srcDir 'src/integrationTest/resources'
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+    }
+    performanceTest {
+        java.srcDir 'src/performanceTest/java'
+        resources.srcDir 'src/performanceTest/resources'
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+    performanceTestImplementation.extendsFrom testImplementation
+    performanceTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -48,15 +71,48 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
-    compileOnly 'org.projectlombok:lombok:1.18.32'
-    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
 }
 
+// ──────────────────────────────────────────────────────────────
+// T-24: `./gradlew test` ejecuta solo tests unitarios (*Test.java)
+// ──────────────────────────────────────────────────────────────
 tasks.named('test') {
     useJUnitPlatform()
+    include '**/*Test.class'
+    exclude '**/*IT.class', '**/*PerfTest.class'
     finalizedBy jacocoTestReport
+}
+
+// ──────────────────────────────────────────────────────────────
+// T-24: `./gradlew integrationTest` ejecuta solo *IT.java
+// ──────────────────────────────────────────────────────────────
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests (src/integrationTest, *IT.java).'
+    group = 'verification'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    include '**/*IT.class'
+    shouldRunAfter tasks.named('test')
+    systemProperty 'spring.profiles.active', 'dev'
+}
+
+// ──────────────────────────────────────────────────────────────
+// T-24: `./gradlew performanceTest` ejecuta solo *PerfTest.java
+// ──────────────────────────────────────────────────────────────
+tasks.register('performanceTest', Test) {
+    description = 'Runs performance tests (src/performanceTest, *PerfTest.java).'
+    group = 'verification'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.performanceTest.output.classesDirs
+    classpath = sourceSets.performanceTest.runtimeClasspath
+    include '**/*PerfTest.class'
+    shouldRunAfter tasks.named('integrationTest')
+    systemProperty 'spring.profiles.active', 'dev'
 }
 
 jacoco {
@@ -64,12 +120,12 @@ jacoco {
 }
 
 def jacocoExcludes = [
-        '**/ProyectoApplication.*',
-        '**/config/**',
-        '**/dto/**',
-        '**/exception/**',
-        '**/security/**',
-        '**/model/**'
+    '**/ProyectoApplication.*',
+    '**/config/**',
+    '**/dto/**',
+    '**/exception/**',
+    '**/security/**',
+    '**/model/**'
 ]
 
 jacocoTestReport {
