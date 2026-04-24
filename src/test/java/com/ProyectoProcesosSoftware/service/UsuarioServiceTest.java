@@ -4,6 +4,7 @@ import com.ProyectoProcesosSoftware.dto.EditarUsuarioDTO;
 import com.ProyectoProcesosSoftware.dto.RegistroUsuarioDTO;
 import com.ProyectoProcesosSoftware.dto.UsuarioResponseDTO;
 import com.ProyectoProcesosSoftware.exception.DuplicateResourceException;
+import com.ProyectoProcesosSoftware.exception.ResourceNotFoundException;
 import com.ProyectoProcesosSoftware.exception.UnauthorizedActionException;
 import com.ProyectoProcesosSoftware.model.Rol;
 import com.ProyectoProcesosSoftware.model.Usuario;
@@ -144,5 +145,72 @@ class UsuarioServiceTest {
         assertThatThrownBy(() -> usuarioService.editarPerfil(1L, dto, 99L))
                 .isInstanceOf(UnauthorizedActionException.class);
         verify(usuarioRepository, never()).save(any());
+    }
+    
+    @Test
+    @DisplayName("T-13: Obtener perfil de usuario no encontrado lanza ResourceNotFoundException")
+    void obtenerPerfil_usuarioNoEncontrado() {
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> usuarioService.obtenerPerfil(1L, 1L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Usuario no encontrado");
+    }
+
+    @Test
+    @DisplayName("T-13: Editar perfil con email ya usado por otro usuario lanza DuplicateResourceException")
+    void editarPerfil_emailDuplicado() {
+        EditarUsuarioDTO dto = new EditarUsuarioDTO();
+        dto.setNombre("Juan");
+        dto.setEmail("otro@example.com");
+
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioGuardado));
+        when(usuarioRepository.existsByEmail("otro@example.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> usuarioService.editarPerfil(1L, dto, 1L))
+                .isInstanceOf(DuplicateResourceException.class);
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("T-13: Editar perfil de usuario no encontrado lanza ResourceNotFoundException")
+    void editarPerfil_usuarioNoEncontrado() {
+        EditarUsuarioDTO dto = new EditarUsuarioDTO();
+        dto.setNombre("Juan");
+        dto.setEmail("juan@example.com");
+
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> usuarioService.editarPerfil(1L, dto, 1L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Usuario no encontrado");
+    }
+
+    @Test
+    @DisplayName("Eliminar cuenta propia exitosamente")
+    void eliminarCuenta_exitoso() {
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioGuardado));
+
+        usuarioService.eliminarCuenta(1L, 1L);
+
+        verify(usuarioRepository).delete(usuarioGuardado);
+    }
+
+    @Test
+    @DisplayName("Eliminar cuenta de otro usuario lanza UnauthorizedActionException")
+    void eliminarCuenta_otroUsuario_lanzaExcepcion() {
+        assertThatThrownBy(() -> usuarioService.eliminarCuenta(1L, 99L))
+                .isInstanceOf(UnauthorizedActionException.class);
+        verify(usuarioRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("Eliminar cuenta de usuario no encontrado lanza ResourceNotFoundException")
+    void eliminarCuenta_usuarioNoEncontrado() {
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> usuarioService.eliminarCuenta(1L, 1L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Usuario no encontrado");
     }
 }
