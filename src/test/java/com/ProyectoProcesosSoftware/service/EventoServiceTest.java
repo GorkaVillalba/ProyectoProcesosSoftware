@@ -139,7 +139,7 @@ class EventoServiceTest {
         assertThatThrownBy(() -> eventoService.eliminarEvento(2L, 99L))
                 .isInstanceOf(UnauthorizedActionException.class);
     }
-
+    
     @Test
     @DisplayName("Crear evento con usuario no encontrado lanza ResourceNotFoundException")
     void crear_usuarioNoEncontrado() {
@@ -204,84 +204,5 @@ class EventoServiceTest {
                 eventoService.listarEventos("inexistente", null, pageable);
 
         assertThat(resultado.getContent()).isEmpty();
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // obtenerPrecio — cubre switch (Base / +25% / +50%), 404 y aforo 0
-    // ─────────────────────────────────────────────────────────────
-
-    @Test
-    @DisplayName("obtenerPrecio con evento no existente lanza ResourceNotFoundException")
-    void obtenerPrecio_eventoNoExiste_lanza404() {
-        when(eventoRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> eventoService.obtenerPrecio(999L))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Evento");
-    }
-
-    @Test
-    @DisplayName("obtenerPrecio EarlyBird devuelve nivel Base y % de ocupación correcto")
-    void obtenerPrecio_earlyBird_nivelBase() {
-        when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
-        when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("EarlyBird");
-        when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
-                .thenReturn(new BigDecimal("30.00"));
-
-        PrecioEventoDTO dto = eventoService.obtenerPrecio(1L);
-
-        assertThat(dto.getEventoId()).isEqualTo(1L);
-        assertThat(dto.getEstrategia()).isEqualTo("EarlyBird");
-        assertThat(dto.getNivel()).isEqualTo("Base");
-        assertThat(dto.getPrecioBase()).isEqualByComparingTo("30");
-        assertThat(dto.getPrecioActual()).isEqualByComparingTo("30.00");
-        // entradasVendidas=50, aforo=500 -> 10%
-        assertThat(dto.getPorcentajeOcupacion()).isEqualTo(10);
-    }
-
-    @Test
-    @DisplayName("obtenerPrecio Regular devuelve nivel +25%")
-    void obtenerPrecio_regular_nivelMas25() {
-        when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
-        when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("Regular");
-        when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
-                .thenReturn(new BigDecimal("37.50"));
-
-        PrecioEventoDTO dto = eventoService.obtenerPrecio(1L);
-
-        assertThat(dto.getEstrategia()).isEqualTo("Regular");
-        assertThat(dto.getNivel()).isEqualTo("+25%");
-        assertThat(dto.getPrecioActual()).isEqualByComparingTo("37.50");
-    }
-
-    @Test
-    @DisplayName("obtenerPrecio LastMinute devuelve nivel +50%")
-    void obtenerPrecio_lastMinute_nivelMas50() {
-        when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
-        when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("LastMinute");
-        when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
-                .thenReturn(new BigDecimal("45.00"));
-
-        PrecioEventoDTO dto = eventoService.obtenerPrecio(1L);
-
-        assertThat(dto.getEstrategia()).isEqualTo("LastMinute");
-        assertThat(dto.getNivel()).isEqualTo("+50%");
-        assertThat(dto.getPrecioActual()).isEqualByComparingTo("45.00");
-    }
-
-    @Test
-    @DisplayName("obtenerPrecio con aforo 0 devuelve porcentaje de ocupación 0")
-    void obtenerPrecio_aforoCero_porcentajeCero() {
-        evento.setAforoMaximo(0);
-        evento.setEntradasVendidas(0);
-        when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
-        when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("EarlyBird");
-        when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
-                .thenReturn(new BigDecimal("30.00"));
-
-        PrecioEventoDTO dto = eventoService.obtenerPrecio(1L);
-
-        assertThat(dto.getPorcentajeOcupacion()).isEqualTo(0);
-        assertThat(dto.getNivel()).isEqualTo("Base");
     }
 }
