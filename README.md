@@ -1,6 +1,9 @@
 # EventPass - Plataforma de Eventos y Entradas
 ![CI Pipeline](https://github.com/GorkaVillalba/ProyectoProcesosSoftware/actions/workflows/ci.yml/badge.svg)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=coverage)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=bugs)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
+[![Maintainability](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
 
 
 ## Descripción

@@ -1,5 +1,6 @@
 package com.ProyectoProcesosSoftware.service;
 
+import com.ProyectoProcesosSoftware.dto.TicketMapper;
 import com.ProyectoProcesosSoftware.dto.TicketResponseDTO;
 import com.ProyectoProcesosSoftware.exception.BusinessRuleException;
 import com.ProyectoProcesosSoftware.exception.ResourceNotFoundException;
@@ -82,13 +83,13 @@ public class TicketService {
         eventoRepository.save(evento);
 
         Ticket guardado = ticketRepository.save(ticket);
-        return toDTO(guardado, estrategia);
+        return TicketMapper.TicketResponseDTO(guardado, estrategia);
     }
 
     public List<TicketResponseDTO> misEntradas(Long asistenteId) {
         return ticketRepository.findByAsistenteId(asistenteId)
                 .stream()
-                .map(t -> toDTO(t, pricingContext.nombreEstrategia(
+                .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
                         t.getEvento().getEntradasVendidas(),
                         t.getEvento().getAforoMaximo())))
                 .collect(Collectors.toList());
@@ -98,33 +99,11 @@ public class TicketService {
     public List<TicketResponseDTO> getMisEntradas(Long usuarioId) {
         return ticketRepository.findByAsistenteIdOrderByFechaCompraDesc(usuarioId)
                 .stream()
-                .map(t -> toDTO(t, pricingContext.nombreEstrategia(
+                .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
                         t.getEvento().getEntradasVendidas(),
                         t.getEvento().getAforoMaximo())))
                 .collect(Collectors.toList());
     }
 
-    private TicketResponseDTO toDTO(Ticket t, String estrategia) {
-        TicketResponseDTO dto = new TicketResponseDTO();
-        dto.setId(t.getId());
-        dto.setUuid(t.getUuid());
-
-        // Información completa del evento
-        dto.setEventoId(t.getEvento().getId());
-        dto.setEventoNombre(t.getEvento().getNombre());
-        dto.setEventoFecha(t.getEvento().getFecha());
-        dto.setEventoHora(t.getEvento().getHora());
-        dto.setEventoUbicacion(t.getEvento().getUbicacion());
-
-        // Información del asistente
-        dto.setAsistenteId(t.getAsistente().getId());
-        dto.setAsistenteNombre(t.getAsistente().getNombre());
-
-        // Información de la compra
-        dto.setPrecioFinal(t.getPrecioFinal());
-        dto.setEstrategiaPrecio(estrategia);
-        dto.setFechaCompra(t.getFechaCompra());
-        dto.setEstado(t.getEstado());
-        return dto;
-    }
+    
 }
