@@ -94,4 +94,5 @@ public class TicketService {
                         t.getEvento().getAforoMaximo())))
                 .collect(Collectors.toList());
     }
+
 }
