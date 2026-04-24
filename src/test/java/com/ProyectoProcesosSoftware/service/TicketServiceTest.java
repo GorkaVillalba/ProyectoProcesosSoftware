@@ -176,6 +176,8 @@ class TicketServiceTest {
             when(ticketRepository.save(any())).thenAnswer(inv -> {
                 Ticket t = inv.getArgument(0);
                 t.setId(10L);
+                t.setUuid("test-uuid-123");
+                t.setFechaCompra(java.time.LocalDateTime.now());
                 return t;
             });
         }
@@ -350,10 +352,12 @@ class TicketServiceTest {
         private Ticket ticketMock(Long id, BigDecimal precio) {
             Ticket t = new Ticket();
             t.setId(id);
+            t.setUuid("mock-uuid-" + id);
             t.setEvento(evento);
             t.setAsistente(asistente);
             t.setPrecioFinal(precio);
             t.setEstado(TicketStatus.VALIDO);
+            t.setFechaCompra(java.time.LocalDateTime.now());
             return t;
         }
     }
