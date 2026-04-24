@@ -117,6 +117,7 @@
   .badge-bor { background: var(--surface3); color: var(--muted); }
   .badge-ago { background: var(--danger-dim); color: var(--danger); }
   .badge-fin { background: rgba(255,255,255,0.06); color: var(--muted); }
+  .badge-warn { background: rgba(255,180,0,0.12); color: #ffb400; }
   .event-card .ec-meta { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; margin-bottom: 1rem; }
   .event-card .ec-meta span::before { margin-right: 5px; }
   .ec-footer { display: flex; align-items: center; justify-content: space-between; }
@@ -204,6 +205,8 @@
   .price-detail { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
   .price-detail .current { font-family: var(--font-head); font-size: 1.3rem; font-weight: 700; color: var(--accent); }
   .price-detail .strategy { font-size: 11px; color: var(--muted); }
+  .badge-valido { background: var(--success-dim); color: var(--success); }
+  .badge-cancelado { background: var(--danger-dim); color: var(--danger); }
 
   /* ─── RESPONSIVE ─── */
   @media (max-width: 600px) {
@@ -499,6 +502,17 @@ function badgeHtml(estado) {
   return `<span class="badge ${map[estado]||'badge-bor'}">${estado}</span>`;
 }
 function initials(name) { return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function availBadge(e) {
+  if (e.estado === 'AGOTADO' || e.plazasDisponibles === 0) return '<span class="badge badge-ago">AGOTADO</span>';
+  const pct = e.aforoMaximo ? (e.entradasVendidas / e.aforoMaximo) * 100 : 0;
+  if (pct >= 80) return '<span class="badge badge-warn">Últimas plazas</span>';
+  return '<span class="badge badge-pub">Disponible</span>';
+}
+function capBarColor(pct) {
+  if (pct >= 90) return 'var(--danger)';
+  if (pct >= 80) return '#ffb400';
+  return 'var(--accent)';
+}
 
 /* ═══════ AUTH STATE ═══════ */
 function saveAuth(data) {
@@ -524,6 +538,7 @@ function renderNav() {
   const na = el('nav-actions');
   if (currentUser) {
     const isOrg = currentUser.rol === 'ORGANIZADOR';
+    const isAst = currentUser.rol === 'ASISTENTE';
     na.innerHTML = `
       <span class="nav-user">${currentUser.email}</span>
       <button class="btn btn-sm" onclick="showPage('events')">Eventos</button>
@@ -647,7 +662,7 @@ function eventCardHtml(e, isOwner) {
     <div class="event-card" onclick="openDetail(${e.id})">
       <div class="ec-header">
         <div class="ec-title">${e.nombre}</div>
-        ${badgeHtml(e.estado)}
+        <div style="display:flex;gap:4px;align-items:center">${availBadge(e)} ${isOwner ? badgeHtml(e.estado) : ''}</div>
       </div>
       <div class="ec-meta">
         <span>📅 ${formatDate(e.fecha)} · ${e.hora ? e.hora.slice(0,5) : ''}</span>
@@ -655,10 +670,10 @@ function eventCardHtml(e, isOwner) {
         <span>👤 ${e.organizadorNombre}</span>
       </div>
       <div class="ec-footer">
-        <div class="price-tag">€${parseFloat(e.precioBase).toFixed(2)}</div>
+        <div class="price-tag">€${parseFloat(e.precioActual || e.precioBase).toFixed(2)}</div>
         <div>
-          <div class="capacity-bar"><div class="capacity-fill" style="width:${pct}%"></div></div>
-          <div class="capacity-text">${e.plazasDisponibles} plazas</div>
+          <div class="capacity-bar"><div class="capacity-fill" style="width:${pct}%;background:${capBarColor(pct)}"></div></div>
+          <div class="capacity-text">${e.plazasDisponibles} / ${e.aforoMaximo} plazas</div>
         </div>
       </div>
     </div>`;
@@ -677,17 +692,18 @@ async function openDetail(id) {
   try {
     const e = await apiFetch('/events/' + id);
     el('dm-title').textContent = e.nombre;
-    el('dm-status').innerHTML = badgeHtml(e.estado);
+    el('dm-status').innerHTML = badgeHtml(e.estado) + ' ' + availBadge(e);
     el('dm-fecha').textContent = formatDate(e.fecha);
     el('dm-hora').textContent = e.hora ? e.hora.slice(0,5) : '—';
     el('dm-ubicacion').textContent = e.ubicacion;
     el('dm-org').textContent = e.organizadorNombre;
     el('dm-aforo').textContent = `${e.entradasVendidas} / ${e.aforoMaximo}`;
-    el('dm-precio').textContent = `€${parseFloat(e.precioActual).toFixed(2)}`;
+    el('dm-precio').textContent = `€${parseFloat(e.precioActual || e.precioBase).toFixed(2)}`;
     el('dm-strategy').textContent = e.estrategiaPrecio || '';
     el('dm-desc').textContent = e.descripcion || 'Sin descripción';
     const pct = e.aforoMaximo ? Math.round((e.entradasVendidas/e.aforoMaximo)*100) : 0;
     el('dm-cap-bar').style.width = pct + '%';
+    el('dm-cap-bar').style.background = capBarColor(pct);
     el('dm-cap-text').textContent = `${e.plazasDisponibles} plazas disponibles (${100-pct}%)`;
 
     let actions = '';
@@ -697,7 +713,7 @@ async function openDetail(id) {
         actions += `<button class="btn btn-danger btn-sm" onclick="doDeleteEvent(${e.id})">Eliminar</button>`;
       }
     } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'PUBLICADO' && e.plazasDisponibles > 0) {
-      actions += `<div id="dm-purchase-area"><button class="btn btn-accent" id="buy-btn" onclick="doComprarEntrada(${e.id})">Comprar Entrada — €${parseFloat(e.precioActual).toFixed(2)}</button></div>`;
+      actions += `<div id="dm-purchase-area"><button class="btn btn-accent" id="buy-btn" onclick="doComprarEntrada(${e.id})">Comprar Entrada — €${parseFloat(e.precioActual || e.precioBase).toFixed(2)}</button></div>`;
     } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'AGOTADO') {
       actions += `<p style="font-size:13px;color:var(--danger)">Entradas agotadas</p>`;
     }

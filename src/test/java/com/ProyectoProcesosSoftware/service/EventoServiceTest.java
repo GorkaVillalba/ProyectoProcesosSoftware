@@ -139,4 +139,70 @@ class EventoServiceTest {
         assertThatThrownBy(() -> eventoService.eliminarEvento(2L, 99L))
                 .isInstanceOf(UnauthorizedActionException.class);
     }
+    
+    @Test
+    @DisplayName("Crear evento con usuario no encontrado lanza ResourceNotFoundException")
+    void crear_usuarioNoEncontrado() {
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventoService.crearEvento(crearDTO, 99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Usuario no encontrado");
+    }
+
+    @Test
+    @DisplayName("Listar eventos devuelve página de resultados")
+    void listarEventos_devuelvePagina() {
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(0, 10);
+
+        org.springframework.data.domain.Page<Evento> paginaMock =
+                new org.springframework.data.domain.PageImpl<>(java.util.List.of(evento));
+
+        when(eventoRepository.findByEstadoAndFiltros(
+                EstadoEvento.PUBLICADO, null, null, pageable))
+                .thenReturn(paginaMock);
+
+        org.springframework.data.domain.Page<EventoResponseDTO> resultado =
+                eventoService.listarEventos(null, null, pageable);
+
+        assertThat(resultado.getContent()).hasSize(1);
+        assertThat(resultado.getContent().get(0).getNombre()).isEqualTo("Concierto");
+    }
+
+    @Test
+    @DisplayName("Listar eventos con filtros aplica nombre y ubicacion")
+    void listarEventos_conFiltros() {
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(0, 10);
+
+        org.springframework.data.domain.Page<Evento> paginaMock =
+                new org.springframework.data.domain.PageImpl<>(java.util.List.of(evento));
+
+        when(eventoRepository.findByEstadoAndFiltros(
+                EstadoEvento.PUBLICADO, "Concierto", "Bilbao", pageable))
+                .thenReturn(paginaMock);
+
+        org.springframework.data.domain.Page<EventoResponseDTO> resultado =
+                eventoService.listarEventos("Concierto", "Bilbao", pageable);
+
+        assertThat(resultado.getContent()).hasSize(1);
+        assertThat(resultado.getContent().get(0).getUbicacion()).isEqualTo("Bilbao");
+    }
+
+    @Test
+    @DisplayName("Listar eventos sin resultados devuelve página vacía")
+    void listarEventos_sinResultados() {
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(0, 10);
+
+        when(eventoRepository.findByEstadoAndFiltros(
+                EstadoEvento.PUBLICADO, "inexistente", null, pageable))
+                .thenReturn(org.springframework.data.domain.Page.empty());
+
+        org.springframework.data.domain.Page<EventoResponseDTO> resultado =
+                eventoService.listarEventos("inexistente", null, pageable);
+
+        assertThat(resultado.getContent()).isEmpty();
+    }
 }
