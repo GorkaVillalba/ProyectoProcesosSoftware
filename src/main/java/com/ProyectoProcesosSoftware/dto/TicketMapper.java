@@ -1,8 +1,6 @@
 package com.ProyectoProcesosSoftware.dto;
 
-import com.ProyectoProcesosSoftware.model.Evento;
 import com.ProyectoProcesosSoftware.model.Ticket;
-import com.ProyectoProcesosSoftware.model.Usuario;
 
 public class TicketMapper {
         public static TicketResponseDTO TicketResponseDTO(Ticket t, String estrategia) {

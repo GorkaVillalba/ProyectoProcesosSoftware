@@ -1,5 +1,6 @@
 package com.ProyectoProcesosSoftware.service;
 
+import com.ProyectoProcesosSoftware.dto.TicketMapper;
 import com.ProyectoProcesosSoftware.dto.TicketResponseDTO;
 import com.ProyectoProcesosSoftware.exception.BusinessRuleException;
 import com.ProyectoProcesosSoftware.exception.ResourceNotFoundException;
@@ -82,30 +83,15 @@ public class TicketService {
         eventoRepository.save(evento);
 
         Ticket guardado = ticketRepository.save(ticket);
-        return toDTO(guardado, estrategia);
+        return TicketMapper.TicketResponseDTO(guardado, estrategia);
     }
 
     public List<TicketResponseDTO> misEntradas(Long asistenteId) {
         return ticketRepository.findByAsistenteId(asistenteId)
                 .stream()
-                .map(t -> toDTO(t, pricingContext.nombreEstrategia(
+                .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
                         t.getEvento().getEntradasVendidas(),
                         t.getEvento().getAforoMaximo())))
                 .collect(Collectors.toList());
-    }
-
-    private TicketResponseDTO toDTO(Ticket t, String estrategia) {
-        TicketResponseDTO dto = new TicketResponseDTO();
-        dto.setId(t.getId());
-        dto.setUuid(t.getUuid());
-        dto.setEventoId(t.getEvento().getId());
-        dto.setEventoNombre(t.getEvento().getNombre());
-        dto.setAsistenteId(t.getAsistente().getId());
-        dto.setAsistenteNombre(t.getAsistente().getNombre());
-        dto.setPrecioFinal(t.getPrecioFinal());
-        dto.setEstrategiaPrecio(estrategia);
-        dto.setFechaCompra(t.getFechaCompra());
-        dto.setEstado(t.getEstado());
-        return dto;
     }
 }
