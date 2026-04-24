@@ -200,6 +200,14 @@
   .badge-valido { background: var(--success-dim); color: var(--success); }
   .badge-cancelado { background: var(--danger-dim); color: var(--danger); }
 
+  /* ─── PRICING ─── */
+  .price-block { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .price-block .price-val { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+  .price-block .price-level { font-size: 11px; color: var(--muted); }
+  .badge-early { background: var(--success-dim); color: var(--success); }
+  .badge-regular { background: var(--info-dim); color: var(--info); }
+  .badge-lastmin { background: rgba(255,180,0,0.12); color: #ffb400; }
+
   /* ─── RESPONSIVE ─── */
   @media (max-width: 600px) {
     .form-row { grid-template-columns: 1fr; }
@@ -385,7 +393,7 @@
       <div class="detail-item"><label>Ubicación</label><span id="dm-ubicacion"></span></div>
       <div class="detail-item"><label>Organizador</label><span id="dm-org"></span></div>
       <div class="detail-item"><label>Aforo</label><span id="dm-aforo"></span></div>
-      <div class="detail-item"><label>Precio</label><span id="dm-precio" style="color:var(--accent);font-family:var(--font-head);font-size:1.1rem"></span></div>
+      <div class="detail-item"><label>Precio</label><div id="dm-precio-wrap"></div></div>
     </div>
     <div class="desc-block" id="dm-desc"></div>
     <div style="margin-bottom:1rem">
@@ -480,6 +488,15 @@ function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', {day
 function badgeHtml(estado) {
   const map = { PUBLICADO:'badge-pub', BORRADOR:'badge-bor', AGOTADO:'badge-ago', FINALIZADO:'badge-fin', CANCELADO:'badge-ago' };
   return `<span class="badge ${map[estado]||'badge-bor'}">${estado}</span>`;
+}
+function pricingBadge(estrategia) {
+  const map = {
+    EarlyBird: { css: 'badge-early', label: 'Precio Early Bird' },
+    Regular:   { css: 'badge-regular', label: 'Precio Regular' },
+    LastMinute:{ css: 'badge-lastmin', label: 'Última oportunidad' }
+  };
+  const b = map[estrategia] || map.EarlyBird;
+  return `<span class="badge ${b.css}">${b.label}</span>`;
 }
 function initials(name) { return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 
@@ -640,7 +657,7 @@ function eventCardHtml(e, isOwner) {
         <span>👤 ${e.organizadorNombre}</span>
       </div>
       <div class="ec-footer">
-        <div class="price-tag">€${parseFloat(e.precioBase).toFixed(2)}</div>
+        <div><div class="price-tag">€${parseFloat(e.precioActual || e.precioBase).toFixed(2)}</div>${pricingBadge(e.estrategiaPrecio)}</div>
         <div>
           <div class="capacity-bar"><div class="capacity-fill" style="width:${pct}%"></div></div>
           <div class="capacity-text">${e.plazasDisponibles} plazas</div>
@@ -708,8 +725,18 @@ async function openDetail(id) {
     el('dm-ubicacion').textContent = e.ubicacion;
     el('dm-org').textContent = e.organizadorNombre;
     el('dm-aforo').textContent = `${e.entradasVendidas} / ${e.aforoMaximo}`;
-    el('dm-precio').textContent = `€${parseFloat(e.precioBase).toFixed(2)}`;
     el('dm-desc').textContent = e.descripcion || 'Sin descripción';
+
+    apiFetch('/events/' + id + '/price').then(p => {
+      el('dm-precio-wrap').innerHTML = `
+        <div class="price-block">
+          <span class="price-val">€${parseFloat(p.precioActual).toFixed(2)}</span>
+          <span class="price-level">${p.nivel}</span>
+        </div>
+        ${pricingBadge(p.estrategia)}`;
+    }).catch(() => {
+      el('dm-precio-wrap').innerHTML = `<span style="color:var(--accent);font-family:var(--font-head)">€${parseFloat(e.precioBase).toFixed(2)}</span>`;
+    });
     const pct = e.aforoMaximo ? Math.round((e.entradasVendidas/e.aforoMaximo)*100) : 0;
     el('dm-cap-bar').style.width = pct + '%';
     el('dm-cap-text').textContent = `${e.plazasDisponibles} plazas disponibles (${100-pct}%)`;

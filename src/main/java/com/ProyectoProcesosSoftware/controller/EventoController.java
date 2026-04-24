@@ -44,6 +44,11 @@ public class EventoController {
         return ResponseEntity.ok(eventoService.obtenerDetalle(id));
     }
 
+    @GetMapping("/{id}/price")
+    public ResponseEntity<PrecioEventoDTO> precio(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(eventoService.obtenerPrecio(id));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<EventoResponseDTO> editar(
             @PathVariable Long id, @Valid @RequestBody EditarEventoDTO dto, Authentication auth) {
