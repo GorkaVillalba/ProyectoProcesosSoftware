@@ -85,6 +85,32 @@ public class EventoService {
         return EventoMapper.toResponseDTO(eventoRepository.save(evento), pricingContext);
     }
 
+    public PrecioEventoDTO obtenerPrecio(Long id) {
+        Evento evento = eventoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Evento no encontrado con id: " + id));
+
+        int vendidas = evento.getEntradasVendidas();
+        int aforo = evento.getAforoMaximo();
+        int pctOcupacion = aforo > 0 ? (int) ((double) vendidas / aforo * 100) : 0;
+
+        String estrategia = pricingContext.nombreEstrategia(vendidas, aforo);
+        String nivel;
+        switch (estrategia) {
+            case "Regular":    nivel = "+25%"; break;
+            case "LastMinute": nivel = "+50%"; break;
+            default:           nivel = "Base"; break;
+        }
+
+        PrecioEventoDTO dto = new PrecioEventoDTO();
+        dto.setEventoId(evento.getId());
+        dto.setPrecioBase(evento.getPrecioBase());
+        dto.setPrecioActual(pricingContext.calcularPrecio(evento.getPrecioBase(), vendidas, aforo));
+        dto.setEstrategia(estrategia);
+        dto.setNivel(nivel);
+        dto.setPorcentajeOcupacion(pctOcupacion);
+        return dto;
+    }
+
     // T-24 (Persona 6)
     @Transactional
     public void eliminarEvento(Long eventoId, Long organizadorId) {
