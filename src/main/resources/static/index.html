@@ -117,6 +117,7 @@
   .badge-bor { background: var(--surface3); color: var(--muted); }
   .badge-ago { background: var(--danger-dim); color: var(--danger); }
   .badge-fin { background: rgba(255,255,255,0.06); color: var(--muted); }
+  .badge-warn { background: rgba(255,180,0,0.12); color: #ffb400; }
   .event-card .ec-meta { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; margin-bottom: 1rem; }
   .event-card .ec-meta span::before { margin-right: 5px; }
   .ec-footer { display: flex; align-items: center; justify-content: space-between; }
@@ -184,19 +185,26 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .loader-wrap { display: flex; justify-content: center; padding: 3rem; }
 
-  /* ─── MIS ENTRADAS ─── */
-  .tickets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  /* ─── TICKETS ─── */
   .ticket-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius-lg); padding: 1.25rem;
-    transition: border-color .15s;
+    display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    flex-wrap: wrap;
   }
-  .ticket-card:hover { border-color: var(--border2); }
-  .ticket-card .tc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
-  .ticket-card .tc-title { font-family: var(--font-head); font-size: 1rem; font-weight: 700; line-height: 1.3; }
-  .ticket-card .tc-meta { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; margin-bottom: 1rem; }
-  .ticket-uuid { font-size: 11px; color: var(--muted); font-family: monospace; background: var(--surface2); border-radius: 6px; padding: 4px 8px; margin-bottom: 1rem; word-break: break-all; }
-  .ticket-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .ticket-card + .ticket-card { margin-top: 12px; }
+  .ticket-info { flex: 1; min-width: 200px; }
+  .ticket-info .ti-event { font-family: var(--font-head); font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+  .ticket-info .ti-meta { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+  .ticket-uuid { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 8px 14px; font-family: monospace; font-size: 13px; color: var(--accent); text-align: center; word-break: break-all; }
+  .purchase-ok { text-align: center; padding: 1.5rem 0; }
+  .purchase-ok .check { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .purchase-ok h4 { font-family: var(--font-head); font-size: 1.1rem; margin-bottom: 0.5rem; }
+  .purchase-ok .uuid-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .purchase-ok .uuid-code { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 10px 16px; font-family: monospace; font-size: 15px; color: var(--accent); margin-bottom: 1rem; display: inline-block; }
+  .price-detail { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .price-detail .current { font-family: var(--font-head); font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+  .price-detail .strategy { font-size: 11px; color: var(--muted); }
   .badge-valido { background: var(--success-dim); color: var(--success); }
   .badge-cancelado { background: var(--danger-dim); color: var(--danger); }
 
@@ -339,13 +347,25 @@
     <div id="my-events-list"></div>
   </div>
 
-  <!-- MIS ENTRADAS -->
-  <div class="page" id="page-mis-entradas">
+  <!-- MY TICKETS (asistente) -->
+  <div class="page" id="page-my-tickets">
     <div class="page-header">
       <h2>Mis Entradas</h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="search-bar">
+          <input type="text" id="ticket-search" placeholder="Buscar evento..." oninput="debounceTicketFilter()">
+        </div>
+        <select class="btn btn-sm" id="ticket-sort" onchange="filterAndSortTickets()" style="background:var(--surface);color:var(--text);font-size:12px">
+          <option value="fecha-desc">Más recientes</option>
+          <option value="fecha-asc">Más antiguas</option>
+          <option value="evento-asc">Evento A-Z</option>
+          <option value="evento-desc">Evento Z-A</option>
+          <option value="precio-desc">Precio mayor</option>
+          <option value="precio-asc">Precio menor</option>
+        </select>
+      </div>
     </div>
-    <div id="mis-entradas-alert"></div>
-    <div id="mis-entradas-list"></div>
+    <div id="my-tickets-list"></div>
   </div>
 
   <!-- PROFILE -->
@@ -499,6 +519,17 @@ function pricingBadge(estrategia) {
   return `<span class="badge ${b.css}">${b.label}</span>`;
 }
 function initials(name) { return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function availBadge(e) {
+  if (e.estado === 'AGOTADO' || e.plazasDisponibles === 0) return '<span class="badge badge-ago">AGOTADO</span>';
+  const pct = e.aforoMaximo ? (e.entradasVendidas / e.aforoMaximo) * 100 : 0;
+  if (pct >= 80) return '<span class="badge badge-warn">Últimas plazas</span>';
+  return '<span class="badge badge-pub">Disponible</span>';
+}
+function capBarColor(pct) {
+  if (pct >= 90) return 'var(--danger)';
+  if (pct >= 80) return '#ffb400';
+  return 'var(--accent)';
+}
 
 /* ═══════ AUTH STATE ═══════ */
 function saveAuth(data) {
@@ -528,8 +559,7 @@ function renderNav() {
     na.innerHTML = `
       <span class="nav-user">${currentUser.email}</span>
       <button class="btn btn-sm" onclick="showPage('events')">Eventos</button>
-      ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button>` : ''}
-      ${isAst ? `<button class="btn btn-sm" onclick="showPage('mis-entradas')">Mis Entradas</button>` : ''}
+      ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button>` : `<button class="btn btn-sm" onclick="showPage('my-tickets')">Mis entradas</button>`}
       <button class="btn btn-sm" onclick="showPage('profile')">Perfil</button>
       <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
     `;
@@ -549,7 +579,7 @@ function showPage(name) {
   window.scrollTo(0,0);
   if (name === 'events') loadEvents();
   if (name === 'my-events') loadMyEvents();
-  if (name === 'mis-entradas') loadMisEntradas();
+  if (name === 'my-tickets') loadMyTickets();
   if (name === 'profile') loadProfile();
 }
 
@@ -649,7 +679,7 @@ function eventCardHtml(e, isOwner) {
     <div class="event-card" onclick="openDetail(${e.id})">
       <div class="ec-header">
         <div class="ec-title">${e.nombre}</div>
-        ${badgeHtml(e.estado)}
+        <div style="display:flex;gap:4px;align-items:center">${availBadge(e)} ${isOwner ? badgeHtml(e.estado) : ''}</div>
       </div>
       <div class="ec-meta">
         <span>📅 ${formatDate(e.fecha)} · ${e.hora ? e.hora.slice(0,5) : ''}</span>
@@ -659,8 +689,8 @@ function eventCardHtml(e, isOwner) {
       <div class="ec-footer">
         <div><div class="price-tag">€${parseFloat(e.precioActual || e.precioBase).toFixed(2)}</div>${pricingBadge(e.estrategiaPrecio)}</div>
         <div>
-          <div class="capacity-bar"><div class="capacity-fill" style="width:${pct}%"></div></div>
-          <div class="capacity-text">${e.plazasDisponibles} plazas</div>
+          <div class="capacity-bar"><div class="capacity-fill" style="width:${pct}%;background:${capBarColor(pct)}"></div></div>
+          <div class="capacity-text">${e.plazasDisponibles} / ${e.aforoMaximo} plazas</div>
         </div>
       </div>
     </div>`;
@@ -671,46 +701,6 @@ function debounceSearch() {
   searchTimer = setTimeout(loadEvents, 350);
 }
 
-/* ═══════ MIS ENTRADAS ═══════ */
-async function loadMisEntradas() {
-  if (!currentUser) return showPage('login');
-  const list = el('mis-entradas-list');
-  list.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-  try {
-    const data = await apiFetch('/tickets/my');
-    if (!data.length) {
-      list.innerHTML = `<div class="empty"><div class="icon">🎟</div><p>No tienes entradas todavía</p></div>`;
-      return;
-    }
-    list.innerHTML = `<div class="tickets-grid">${data.map(t => ticketCardHtml(t)).join('')}</div>`;
-  } catch(e) {
-    showAlert('mis-entradas-alert', e.message);
-    list.innerHTML = '';
-  }
-}
-
-function ticketCardHtml(t) {
-  const estadoClass = t.estado === 'VALIDO' ? 'badge-valido' : 'badge-cancelado';
-  const estadoLabel = t.estado === 'VALIDO' ? 'VÁLIDA' : 'CANCELADA';
-  return `
-    <div class="ticket-card">
-      <div class="tc-header">
-        <div class="tc-title">${t.eventoNombre}</div>
-        <span class="badge ${estadoClass}">${estadoLabel}</span>
-      </div>
-      <div class="tc-meta">
-        <span>📅 ${formatDate(t.eventoFecha)} · ${t.eventoHora ? t.eventoHora.slice(0,5) : ''}</span>
-        <span>📍 ${t.eventoUbicacion}</span>
-        <span>🛒 Comprada el ${formatDate(t.fechaCompra)}</span>
-      </div>
-      <div class="ticket-uuid">🔑 ${t.uuid}</div>
-      <div class="ticket-footer">
-        <div class="price-tag">€${parseFloat(t.precioFinal).toFixed(2)}</div>
-        ${t.estado === 'VALIDO' ? `<button class="btn btn-danger btn-sm" disabled title="Disponible próximamente">Cancelar</button>` : ''}
-      </div>
-    </div>`;
-}
-
 /* ═══════ EVENT DETAIL ═══════ */
 async function openDetail(id) {
   el('detail-overlay').classList.remove('hidden');
@@ -719,7 +709,7 @@ async function openDetail(id) {
   try {
     const e = await apiFetch('/events/' + id);
     el('dm-title').textContent = e.nombre;
-    el('dm-status').innerHTML = badgeHtml(e.estado);
+    el('dm-status').innerHTML = badgeHtml(e.estado) + ' ' + availBadge(e);
     el('dm-fecha').textContent = formatDate(e.fecha);
     el('dm-hora').textContent = e.hora ? e.hora.slice(0,5) : '—';
     el('dm-ubicacion').textContent = e.ubicacion;
@@ -739,6 +729,7 @@ async function openDetail(id) {
     });
     const pct = e.aforoMaximo ? Math.round((e.entradasVendidas/e.aforoMaximo)*100) : 0;
     el('dm-cap-bar').style.width = pct + '%';
+    el('dm-cap-bar').style.background = capBarColor(pct);
     el('dm-cap-text').textContent = `${e.plazasDisponibles} plazas disponibles (${100-pct}%)`;
 
     let actions = '';
@@ -747,8 +738,15 @@ async function openDetail(id) {
       if (e.entradasVendidas === 0) {
         actions += `<button class="btn btn-danger btn-sm" onclick="doDeleteEvent(${e.id})">Eliminar</button>`;
       }
+    } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'PUBLICADO' && e.plazasDisponibles > 0) {
+      actions += `<div id="dm-purchase-area"><button class="btn btn-accent" id="buy-btn" onclick="doComprarEntrada(${e.id})">Comprar Entrada — €${parseFloat(e.precioActual || e.precioBase).toFixed(2)}</button></div>`;
+    } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'AGOTADO') {
+      actions += `<p style="font-size:13px;color:var(--danger)">Entradas agotadas</p>`;
     }
-    el('dm-actions').innerHTML = actions || (currentUser ? '' : '<p style="font-size:13px;color:var(--muted)">Inicia sesión para más opciones</p>');
+    if (!currentUser) {
+      actions += '<p style="font-size:13px;color:var(--muted)">Inicia sesión para comprar entradas</p>';
+    }
+    el('dm-actions').innerHTML = actions;
   } catch(e) {
     el('dm-title').textContent = 'Error al cargar';
   }
@@ -868,6 +866,94 @@ async function doDeleteAccount() {
     await apiFetch('/users/' + currentUser.id, { method:'DELETE' });
     logout();
   } catch(e) { showAlert('profile-alert', e.message); }
+}
+
+/* ═══════ COMPRAR ENTRADA ═══════ */
+async function doComprarEntrada(eventoId) {
+  const area = el('dm-purchase-area');
+  if (!area) return;
+  const btn = el('buy-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const ticket = await apiFetch('/tickets/eventos/' + eventoId, { method: 'POST' });
+    area.innerHTML = `
+      <div class="purchase-ok">
+        <div class="check">✓</div>
+        <h4>Entrada comprada</h4>
+        <div class="uuid-label">Tu código de entrada</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(ticket.uuid)}" alt="QR" style="margin-bottom:8px">
+        <div class="uuid-code" style="cursor:pointer" onclick="navigator.clipboard.writeText('${ticket.uuid}').then(()=>this.textContent='¡Copiado!').then(()=>setTimeout(()=>this.textContent='${ticket.uuid}',1500))">${ticket.uuid}</div>
+        <div style="margin-top:1rem">
+          <button class="btn btn-accent btn-sm" onclick="closeDetailModal(); showPage('my-tickets')">Ver mis entradas</button>
+        </div>
+      </div>`;
+  } catch (e) {
+    area.innerHTML = `<div class="alert alert-err">${e.message}</div>
+      <button class="btn btn-accent btn-sm" style="margin-top:8px" onclick="openDetail(${eventoId})">Reintentar</button>`;
+  }
+}
+
+/* ═══════ MIS ENTRADAS ═══════ */
+let allTickets = [];
+let ticketSearchTimer = null;
+
+async function loadMyTickets() {
+  if (!currentUser) return showPage('login');
+  const list = el('my-tickets-list');
+  list.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  try {
+    allTickets = await apiFetch('/tickets/my');
+    filterAndSortTickets();
+  } catch (e) {
+    list.innerHTML = `<div class="alert alert-err">${e.message}</div>`;
+  }
+}
+
+function debounceTicketFilter() {
+  clearTimeout(ticketSearchTimer);
+  ticketSearchTimer = setTimeout(filterAndSortTickets, 250);
+}
+
+function filterAndSortTickets() {
+  const query = (el('ticket-search')?.value || '').toLowerCase();
+  const sort = el('ticket-sort')?.value || 'fecha-desc';
+  const list = el('my-tickets-list');
+
+  let filtered = allTickets.filter(t =>
+    t.eventoNombre.toLowerCase().includes(query) ||
+    (t.eventoUbicacion || '').toLowerCase().includes(query)
+  );
+
+  filtered.sort((a, b) => {
+    switch (sort) {
+      case 'fecha-asc': return new Date(a.fechaCompra) - new Date(b.fechaCompra);
+      case 'fecha-desc': return new Date(b.fechaCompra) - new Date(a.fechaCompra);
+      case 'evento-asc': return a.eventoNombre.localeCompare(b.eventoNombre);
+      case 'evento-desc': return b.eventoNombre.localeCompare(a.eventoNombre);
+      case 'precio-asc': return a.precioFinal - b.precioFinal;
+      case 'precio-desc': return b.precioFinal - a.precioFinal;
+      default: return 0;
+    }
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty"><div class="icon">🎟</div><p>${allTickets.length ? 'Sin resultados' : 'Aún no tienes entradas'}</p></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(t => `
+    <div class="ticket-card">
+      <div class="ticket-info">
+        <div class="ti-event">${t.eventoNombre}</div>
+        <div class="ti-meta">
+          <span>📅 ${formatDate(t.eventoFecha)} · ${t.eventoHora ? t.eventoHora.slice(0,5) : ''}</span>
+          <span>📍 ${t.eventoUbicacion}</span>
+          <span>💰 €${parseFloat(t.precioFinal).toFixed(2)} · ${t.estrategiaPrecio || ''}</span>
+          <span>📆 Comprada: ${formatDate(t.fechaCompra)}</span>
+        </div>
+      </div>
+      <div class="ticket-uuid"><img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(t.uuid)}" alt="QR" style="display:block;margin:0 auto 4px"><span style="font-size:11px;cursor:pointer" onclick="event.stopPropagation();navigator.clipboard.writeText('${t.uuid}').then(()=>{this.textContent='¡Copiado!';setTimeout(()=>this.textContent='${t.uuid.slice(0,8)}...',1500)})">${t.uuid.slice(0,8)}...</span></div>
+    </div>`).join('');
 }
 
 /* ═══════ MODALS CLOSE ═══════ */

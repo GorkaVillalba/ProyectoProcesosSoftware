@@ -11,6 +11,9 @@ public class TicketMapper {
         dto.setUuid(t.getUuid().toString());
         dto.setEventoId(t.getEvento().getId());
         dto.setEventoNombre(t.getEvento().getNombre());
+        dto.setEventoFecha(t.getEvento().getFecha());
+        dto.setEventoHora(t.getEvento().getHora());
+        dto.setEventoUbicacion(t.getEvento().getUbicacion());
         dto.setAsistenteId(t.getAsistente().getId());
         dto.setAsistenteNombre(t.getAsistente().getNombre());
         dto.setPrecioFinal(t.getPrecioFinal());

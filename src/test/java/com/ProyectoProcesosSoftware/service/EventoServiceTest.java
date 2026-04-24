@@ -140,6 +140,7 @@ class EventoServiceTest {
                 .isInstanceOf(UnauthorizedActionException.class);
     }
 
+    
     @Test
     @DisplayName("Crear evento con usuario no encontrado lanza ResourceNotFoundException")
     void crear_usuarioNoEncontrado() {
