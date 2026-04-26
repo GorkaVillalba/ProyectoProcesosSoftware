@@ -11,13 +11,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/tickets")
+@RequestMapping("/api/events")
+
 public class TicketController {
 
     @Autowired
     private TicketService ticketService;
 
-    @PostMapping("/eventos/{eventoId}")
+    @PostMapping("/{id}/tickets") 
     public ResponseEntity<TicketResponseDTO> comprar(
             @PathVariable Long eventoId, Authentication auth) {
         Long asistenteId = Long.parseLong(auth.getName());
