@@ -39,4 +39,13 @@ public class TicketController {
         Long usuarioId = Long.parseLong(auth.getName()); // extraído del token JWT
         return ResponseEntity.ok(ticketService.getMisEntradas(usuarioId));
     }
+
+    // T-13: cancelar entrada
+    @DeleteMapping("/{id}")
+    public ResponseEntity<TicketResponseDTO> cancelar(
+            @PathVariable Long id,
+            Authentication auth) {
+        Long usuarioId = Long.parseLong(auth.getName());
+        return ResponseEntity.ok(ticketService.cancelarEntrada(id, usuarioId));
+    }
 }
