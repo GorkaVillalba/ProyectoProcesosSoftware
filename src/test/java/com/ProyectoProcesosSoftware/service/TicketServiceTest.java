@@ -369,10 +369,12 @@ class TicketServiceTest {
     private Ticket ticketValido(Long id, Usuario u, Evento e) {
         Ticket t = new Ticket();
         t.setId(id);
+        t.setUuid("uuid-" + id);
         t.setEvento(e);
         t.setAsistente(u);
         t.setEstado(TicketStatus.VALIDO);
         t.setPrecioFinal(new BigDecimal("50.00"));
+        t.setFechaCompra(java.time.LocalDateTime.now());
         return t;
     }
 
