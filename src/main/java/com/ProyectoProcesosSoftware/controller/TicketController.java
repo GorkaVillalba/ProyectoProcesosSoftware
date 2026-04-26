@@ -17,10 +17,11 @@ public class TicketController {
 
     @Autowired
     private TicketService ticketService;
+    
 
-    @PostMapping("/{id}/tickets") 
+    @PostMapping("/{eventoId}/tickets")
     public ResponseEntity<TicketResponseDTO> comprar(
-            @PathVariable Long eventoId, Authentication auth) {
+        @PathVariable Long eventoId, Authentication auth) {
         Long asistenteId = Long.parseLong(auth.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ticketService.comprarEntrada(eventoId, asistenteId));
