@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class TicketService {
@@ -94,7 +93,7 @@ public class TicketService {
                 .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
                         t.getEvento().getEntradasVendidas(),
                         t.getEvento().getAforoMaximo())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     //Consultar mis entradas ordenadas por fecha de compra descendente
@@ -104,7 +103,7 @@ public class TicketService {
                 .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
                         t.getEvento().getEntradasVendidas(),
                         t.getEvento().getAforoMaximo())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     
