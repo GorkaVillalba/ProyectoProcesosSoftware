@@ -369,10 +369,12 @@ class TicketServiceTest {
     private Ticket ticketValido(Long id, Usuario u, Evento e) {
         Ticket t = new Ticket();
         t.setId(id);
+        t.setUuid("uuid-" + id);
         t.setEvento(e);
         t.setAsistente(u);
         t.setEstado(TicketStatus.VALIDO);
         t.setPrecioFinal(new BigDecimal("50.00"));
+        t.setFechaCompra(java.time.LocalDateTime.now());
         return t;
     }
 
@@ -416,7 +418,7 @@ class TicketServiceTest {
     @DisplayName("Cancelar con menos de 48h → BusinessRuleException")
     void cancelar_menos48h_400() {
         evento.setFecha(LocalDate.now());
-        evento.setHora(LocalTime.now().plusHours(10)); // faltan 10h
+        evento.setHora(LocalTime.now().plusHours(10));
         Ticket t = ticketValido(5L, asistente, evento);
         when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
 

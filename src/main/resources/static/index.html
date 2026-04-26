@@ -941,19 +941,41 @@ function filterAndSortTickets() {
     list.innerHTML = `<div class="empty"><div class="icon">🎟</div><p>${allTickets.length ? 'Sin resultados' : 'Aún no tienes entradas'}</p></div>`;
     return;
   }
-  list.innerHTML = filtered.map(t => `
-    <div class="ticket-card">
+ list.innerHTML = filtered.map(t => {
+    const esValida = t.estado === 'VALIDO';
+    const badgeCls = esValida ? 'badge-valido' : 'badge-cancelado';
+    const badgeTxt = esValida ? 'VÁLIDA' : 'CANCELADA';
+    return `
+    <div class="ticket-card" data-ticket-id="${t.id}">
       <div class="ticket-info">
-        <div class="ti-event">${t.eventoNombre}</div>
+        <div class="ti-event">${t.eventoNombre} <span class="badge ${badgeCls}" style="margin-left:6px">${badgeTxt}</span></div>
         <div class="ti-meta">
           <span>📅 ${formatDate(t.eventoFecha)} · ${t.eventoHora ? t.eventoHora.slice(0,5) : ''}</span>
           <span>📍 ${t.eventoUbicacion}</span>
           <span>💰 €${parseFloat(t.precioFinal).toFixed(2)} · ${t.estrategiaPrecio || ''}</span>
           <span>📆 Comprada: ${formatDate(t.fechaCompra)}</span>
         </div>
+        ${esValida
+          ? <button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="doCancelarEntrada(${t.id})">Cancelar entrada</button>
+          : <button class="btn btn-sm" style="margin-top:10px" disabled>Entrada cancelada</button>}
       </div>
       <div class="ticket-uuid"><img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(t.uuid)}" alt="QR" style="display:block;margin:0 auto 4px"><span style="font-size:11px;cursor:pointer" onclick="event.stopPropagation();navigator.clipboard.writeText('${t.uuid}').then(()=>{this.textContent='¡Copiado!';setTimeout(()=>this.textContent='${t.uuid.slice(0,8)}...',1500)})">${t.uuid.slice(0,8)}...</span></div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+/* ═══════ CANCELAR ENTRADA (T-14) ═══════ */
+async function doCancelarEntrada(ticketId) {
+  if (!confirm('¿Estás seguro de que quieres cancelar esta entrada?\n\nSolo se puede cancelar si faltan más de 48h para el evento.')) return;
+  try {
+    await apiFetch('/tickets/' + ticketId, { method: 'DELETE' });
+    // T-16: refrescar lista de entradas (el badge cambia a CANCELADA, el botón se desactiva)
+    await loadMyTickets();
+    // Cuando el usuario navegue a /events los datos se recargarán y el evento que estaba AGOTADO
+    // volverá a aparecer como Disponible automáticamente (loadEvents).
+  } catch (e) {
+    alert(e.message || 'No se ha podido cancelar la entrada.');
+  }
 }
 
 /* ═══════ MODALS CLOSE ═══════ */
