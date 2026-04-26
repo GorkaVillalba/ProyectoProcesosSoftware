@@ -130,5 +130,22 @@ public class TicketService {
                 evento.getEntradasVendidas(), evento.getAforoMaximo());
         return TicketMapper.TicketResponseDTO(guardado, estrategia);
     }
-    
+    public List<TicketResponseDTO> misEntradas(Long asistenteId) {
+        return ticketRepository.findByAsistenteId(asistenteId)
+                .stream()
+                .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
+                        t.getEvento().getEntradasVendidas(),
+                        t.getEvento().getAforoMaximo())))
+                .toList();
+    }
+
+    // Consultar mis entradas ordenadas por fecha de compra descendente
+    public List<TicketResponseDTO> getMisEntradas(Long usuarioId) {
+        return ticketRepository.findByAsistenteIdOrderByFechaCompraDesc(usuarioId)
+                .stream()
+                .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
+                        t.getEvento().getEntradasVendidas(),
+                        t.getEvento().getAforoMaximo())))
+                .toList();
+    }
 }
