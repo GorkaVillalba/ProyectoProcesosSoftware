@@ -40,6 +40,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/tickets/mis-entradas").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/tickets/my").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/tickets/**").hasRole("ASISTENTE")
+                .requestMatchers(HttpMethod.DELETE, "/api/tickets/**").hasRole("ASISTENTE")
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))

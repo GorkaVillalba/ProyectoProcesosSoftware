@@ -87,6 +87,51 @@ public class TicketService {
         return TicketMapper.TicketResponseDTO(guardado, estrategia);
     }
 
+     // T-13 + T-15: cancelar entrada con regla de 48h y liberar plaza
+    @org.springframework.transaction.annotation.Transactional
+    public TicketResponseDTO cancelarEntrada(Long ticketId, Long usuarioId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entrada no encontrada con id: " + ticketId));
+
+        // 1. Validar que la entrada pertenece al usuario
+        if (!ticket.getAsistente().getId().equals(usuarioId)) {
+            throw new UnauthorizedActionException("No puedes cancelar una entrada que no es tuya");
+        }
+
+        // 2. Validar que está VALIDA
+        if (ticket.getEstado() != TicketStatus.VALIDO) {
+            throw new BusinessRuleException("La entrada ya está cancelada");
+        }
+
+        // 3. Validar regla de 48h (estricto: 48h justas NO se pueden cancelar)
+        Evento evento = ticket.getEvento();
+        java.time.LocalDateTime fechaEvento =
+                java.time.LocalDateTime.of(evento.getFecha(), evento.getHora());
+        long minutosHastaEvento = java.time.Duration.between(
+                java.time.LocalDateTime.now(), fechaEvento).toMinutes();
+        if (minutosHastaEvento <= 48 * 60) {
+            throw new BusinessRuleException(
+                    "No se puede cancelar: faltan menos de 48h para el evento");
+        }
+
+        // 4. Cambiar estado a CANCELADO
+        ticket.setEstado(TicketStatus.CANCELADO);
+
+        // 5. T-15: liberar plaza y reabrir evento si estaba AGOTADO
+        evento.setEntradasVendidas(Math.max(0, evento.getEntradasVendidas() - 1));
+        if (evento.getEstado() == EstadoEvento.AGOTADO
+                && evento.getEntradasVendidas() < evento.getAforoMaximo()) {
+            evento.setEstado(EstadoEvento.PUBLICADO);
+        }
+        eventoRepository.save(evento);
+
+        Ticket guardado = ticketRepository.save(ticket);
+        String estrategia = pricingContext.nombreEstrategia(
+                evento.getEntradasVendidas(), evento.getAforoMaximo());
+        return toDTO(guardado, estrategia);
+    }
+
+
     public List<TicketResponseDTO> misEntradas(Long asistenteId) {
         return ticketRepository.findByAsistenteId(asistenteId)
                 .stream()
