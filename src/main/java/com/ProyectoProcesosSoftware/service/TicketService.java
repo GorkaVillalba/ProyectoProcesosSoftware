@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class TicketService {
@@ -38,7 +37,9 @@ public class TicketService {
     public TicketResponseDTO comprarEntrada(Long eventoId, Long asistenteId) {
         Evento evento = eventoRepository.findById(eventoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Evento no encontrado con id: " + eventoId));
-
+        if (evento.getEstado() == EstadoEvento.AGOTADO) {
+            throw new BusinessRuleException("El evento está agotado");
+        }
         if (evento.getEstado() != EstadoEvento.PUBLICADO) {
             throw new BusinessRuleException("Solo se pueden comprar entradas de eventos publicados");
         }
@@ -92,7 +93,7 @@ public class TicketService {
                 .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
                         t.getEvento().getEntradasVendidas(),
                         t.getEvento().getAforoMaximo())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     //Consultar mis entradas ordenadas por fecha de compra descendente
@@ -102,7 +103,7 @@ public class TicketService {
                 .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
                         t.getEvento().getEntradasVendidas(),
                         t.getEvento().getAforoMaximo())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     
