@@ -40,13 +40,12 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getMisEntradas(usuarioId));
     }
 
-        // T-13: cancelar entrada
-    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
-    public org.springframework.http.ResponseEntity<TicketResponseDTO> cancelar(
-            @org.springframework.web.bind.annotation.PathVariable Long id,
-            org.springframework.security.core.Authentication auth) {
+    // T-13: cancelar entrada
+    @DeleteMapping("/{id}")
+    public ResponseEntity<TicketResponseDTO> cancelar(
+            @PathVariable Long id,
+            Authentication auth) {
         Long usuarioId = Long.parseLong(auth.getName());
-        return org.springframework.http.ResponseEntity.ok(
-                ticketService.cancelarEntrada(id, usuarioId));
-
+        return ResponseEntity.ok(ticketService.cancelarEntrada(id, usuarioId));
+    }
 }
