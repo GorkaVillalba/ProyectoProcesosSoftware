@@ -38,7 +38,9 @@ public class TicketService {
     public TicketResponseDTO comprarEntrada(Long eventoId, Long asistenteId) {
         Evento evento = eventoRepository.findById(eventoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Evento no encontrado con id: " + eventoId));
-
+        if (evento.getEstado() == EstadoEvento.AGOTADO) {
+            throw new BusinessRuleException("El evento está agotado");
+        }
         if (evento.getEstado() != EstadoEvento.PUBLICADO) {
             throw new BusinessRuleException("Solo se pueden comprar entradas de eventos publicados");
         }
