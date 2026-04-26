@@ -87,8 +87,8 @@ public class TicketService {
         return TicketMapper.TicketResponseDTO(guardado, estrategia);
     }
 
-     // T-13 + T-15: cancelar entrada con regla de 48h y liberar plaza
-    @org.springframework.transaction.annotation.Transactional
+         // T-13 + T-15: cancelar entrada con regla de 48h y liberar plaza
+    @Transactional
     public TicketResponseDTO cancelarEntrada(Long ticketId, Long usuarioId) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Entrada no encontrada con id: " + ticketId));
@@ -128,28 +128,7 @@ public class TicketService {
         Ticket guardado = ticketRepository.save(ticket);
         String estrategia = pricingContext.nombreEstrategia(
                 evento.getEntradasVendidas(), evento.getAforoMaximo());
-        return toDTO(guardado, estrategia);
+        return TicketMapper.TicketResponseDTO(guardado, estrategia);
     }
-
-
-    public List<TicketResponseDTO> misEntradas(Long asistenteId) {
-        return ticketRepository.findByAsistenteId(asistenteId)
-                .stream()
-                .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
-                        t.getEvento().getEntradasVendidas(),
-                        t.getEvento().getAforoMaximo())))
-                .toList();
-    }
-
-    //Consultar mis entradas ordenadas por fecha de compra descendente
-    public List<TicketResponseDTO> getMisEntradas(Long usuarioId) {
-        return ticketRepository.findByAsistenteIdOrderByFechaCompraDesc(usuarioId)
-                .stream()
-                .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
-                        t.getEvento().getEntradasVendidas(),
-                        t.getEvento().getAforoMaximo())))
-                .toList();
-    }
-
     
 }
