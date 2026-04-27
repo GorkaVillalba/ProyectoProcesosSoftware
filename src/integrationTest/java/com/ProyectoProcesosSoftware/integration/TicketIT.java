@@ -120,8 +120,28 @@ class TicketIT {
     @Test
     @DisplayName("GET /my: devuelve las entradas del usuario autenticado")
     void getMisEntradas_end2end() {
+        // Compra en el evento del setUp
         comprarDirecto(asistente);
-        comprarDirecto(asistente);
+
+        // Crea un segundo evento y compra otra entrada
+        Evento segundo = new Evento();
+        segundo.setNombre("Otro festival");
+        segundo.setDescripcion("Segundo evento");
+        segundo.setFecha(LocalDate.now().plusMonths(2));
+        segundo.setHora(LocalTime.of(21, 0));
+        segundo.setUbicacion("San Sebastián");
+        segundo.setAforoMaximo(5);
+        segundo.setEntradasVendidas(0);
+        segundo.setPrecioBase(new BigDecimal("80.00"));
+        segundo.setEstado(EstadoEvento.PUBLICADO);
+        segundo.setOrganizador(organizador);
+        segundo = eventoRepository.save(segundo);
+
+        rest.exchange(
+                "/api/tickets/eventos/" + segundo.getId(),
+                HttpMethod.POST,
+                new HttpEntity<>(authHeaders(asistente)),
+                TicketResponseDTO.class);
 
         ResponseEntity<List<TicketResponseDTO>> response = rest.exchange(
                 "/api/tickets/my",
@@ -193,7 +213,7 @@ class TicketIT {
         assertThat(primera.getPrecioFinal()).isEqualByComparingTo("100.00");
         assertThat(primera.getEstrategiaPrecio()).isEqualTo("EarlyBird");
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 7; i++) {                    // antes: < 6
             comprarDirecto(nuevoUsuario("m" + i + "@test.com", "M" + i, Rol.ASISTENTE));
         }
 

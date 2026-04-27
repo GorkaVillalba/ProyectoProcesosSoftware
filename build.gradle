@@ -56,8 +56,13 @@ sourceSets {
 configurations {
     integrationTestImplementation.extendsFrom testImplementation
     integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+    integrationTestCompileOnly.extendsFrom compileOnly
+    integrationTestAnnotationProcessor.extendsFrom annotationProcessor
+
     performanceTestImplementation.extendsFrom testImplementation
     performanceTestRuntimeOnly.extendsFrom testRuntimeOnly
+    performanceTestCompileOnly.extendsFrom compileOnly
+    performanceTestAnnotationProcessor.extendsFrom annotationProcessor
 }
 
 dependencies {
