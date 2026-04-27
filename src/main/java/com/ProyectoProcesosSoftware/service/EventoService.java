@@ -43,7 +43,7 @@ public class EventoService {
         evento.setUbicacion(dto.getUbicacion());
         evento.setAforoMaximo(dto.getAforoMaximo());
         evento.setPrecioBase(dto.getPrecioBase());
-        evento.setEstado(EstadoEvento.BORRADOR);
+        evento.setEstado(EstadoEvento.PUBLICADO);
         evento.setOrganizador(org);
 
         return EventoMapper.toResponseDTO(eventoRepository.save(evento), pricingContext);

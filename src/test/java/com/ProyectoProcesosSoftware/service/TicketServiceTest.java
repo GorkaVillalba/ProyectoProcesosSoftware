@@ -170,7 +170,7 @@ class TicketServiceTest {
         private void stubCompraValida(BigDecimal precio, String estrategia) {
             when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
             when(usuarioRepository.findById(2L)).thenReturn(Optional.of(asistente));
-            when(ticketRepository.existsByEventoIdAndAsistenteId(1L, 2L)).thenReturn(false);
+            when(ticketRepository.existsByEventoIdAndAsistenteIdAndEstado(1L, 2L, TicketStatus.VALIDO)).thenReturn(false);
             when(pricingContext.calcularPrecio(any(), anyInt(), anyInt())).thenReturn(precio);
             when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn(estrategia);
             when(ticketRepository.save(any())).thenAnswer(inv -> {
@@ -276,7 +276,7 @@ class TicketServiceTest {
         void comprar_duplicado() {
             when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
             when(usuarioRepository.findById(2L)).thenReturn(Optional.of(asistente));
-            when(ticketRepository.existsByEventoIdAndAsistenteId(1L, 2L)).thenReturn(true);
+            when(ticketRepository.existsByEventoIdAndAsistenteIdAndEstado(1L, 2L, TicketStatus.VALIDO)).thenReturn(true);
 
             assertThatThrownBy(() -> ticketService.comprarEntrada(1L, 2L))
                     .isInstanceOf(BusinessRuleException.class)
