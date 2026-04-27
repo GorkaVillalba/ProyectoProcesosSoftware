@@ -956,8 +956,8 @@ function filterAndSortTickets() {
           <span>📆 Comprada: ${formatDate(t.fechaCompra)}</span>
         </div>
         ${esValida
-          ? <button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="doCancelarEntrada(${t.id})">Cancelar entrada</button>
-          : <button class="btn btn-sm" style="margin-top:10px" disabled>Entrada cancelada</button>}
+          ? `<button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="doCancelarEntrada(${t.id})">Cancelar entrada</button>`
+          : `<button class="btn btn-sm" style="margin-top:10px" disabled>Entrada cancelada</button>`}
       </div>
       <div class="ticket-uuid"><img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(t.uuid)}" alt="QR" style="display:block;margin:0 auto 4px"><span style="font-size:11px;cursor:pointer" onclick="event.stopPropagation();navigator.clipboard.writeText('${t.uuid}').then(()=>{this.textContent='¡Copiado!';setTimeout(()=>this.textContent='${t.uuid.slice(0,8)}...',1500)})">${t.uuid.slice(0,8)}...</span></div>
     </div>`;

@@ -55,7 +55,8 @@ public class TicketService {
             throw new UnauthorizedActionException("Solo los asistentes pueden comprar entradas");
         }
 
-        if (ticketRepository.existsByEventoIdAndAsistenteId(eventoId, asistenteId)) {
+        if (ticketRepository.existsByEventoIdAndAsistenteIdAndEstado(
+                eventoId, asistenteId, TicketStatus.VALIDO)) {
             throw new BusinessRuleException("Ya tienes una entrada para este evento");
         }
 

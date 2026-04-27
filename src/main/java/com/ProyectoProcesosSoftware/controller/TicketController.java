@@ -11,40 +11,39 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/events")
-
+@RequestMapping("/api/tickets")
 public class TicketController {
 
     @Autowired
     private TicketService ticketService;
-    
 
-    @PostMapping("/{eventoId}/tickets")
+    // POST /api/tickets/eventos/{eventoId} — comprar entrada
+    @PostMapping("/eventos/{eventoId}")
     public ResponseEntity<TicketResponseDTO> comprar(
-        @PathVariable Long eventoId, Authentication auth) {
+            @PathVariable Long eventoId, Authentication auth) {
         Long asistenteId = Long.parseLong(auth.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ticketService.comprarEntrada(eventoId, asistenteId));
     }
 
+    // GET /api/tickets/mis-entradas
     @GetMapping("/mis-entradas")
     public ResponseEntity<List<TicketResponseDTO>> misEntradas(Authentication auth) {
         Long asistenteId = Long.parseLong(auth.getName());
         return ResponseEntity.ok(ticketService.misEntradas(asistenteId));
     }
-    
-    // GET /api/tickets/my — consultar entradas del usuario autenticado
+
+    // GET /api/tickets/my
     @GetMapping("/my")
     public ResponseEntity<List<TicketResponseDTO>> getMisEntradas(Authentication auth) {
-        Long usuarioId = Long.parseLong(auth.getName()); // extraído del token JWT
+        Long usuarioId = Long.parseLong(auth.getName());
         return ResponseEntity.ok(ticketService.getMisEntradas(usuarioId));
     }
 
-    // T-13: cancelar entrada
+    // DELETE /api/tickets/{id} — T-13: cancelar entrada
     @DeleteMapping("/{id}")
     public ResponseEntity<TicketResponseDTO> cancelar(
-            @PathVariable Long id,
-            Authentication auth) {
+            @PathVariable Long id, Authentication auth) {
         Long usuarioId = Long.parseLong(auth.getName());
         return ResponseEntity.ok(ticketService.cancelarEntrada(id, usuarioId));
     }
