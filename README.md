@@ -73,10 +73,10 @@ Se excluyen del cálculo: `config`, `dto`, `exception`, `security`, `model` y la
 ## Equipo SCRUM
 | Rol | Persona |
 |-----|---------|
-| Product Owner | [MikelOyarzabal] |
-| Scrum Master | [Alvaroogaarcia] |
-| Desarrolladores | [Asiersanchez10] |
-| Desarrolladores | [imZesk] |
+| Product Owner | [[Asiersanchez10] |
+| Scrum Master | [imZesk] |
+| Desarrolladores | [MikelOyarzabal] |
+| Desarrolladores | [Alvaroogaarcia] |
 | Desarrolladores | [jukossound] |
 | Desarrolladores | [Benat27] |
 | Desarrolladores | [GorkaVillalba] |
