@@ -42,3 +42,13 @@ jobs:
 
       - name: Generate Javadoc
         run: ./gradlew javadoc --no-daemon
+
+      - name: Deploy Javadoc to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/docs/javadoc
+          publish_branch: gh-pages
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: "docs: publish Javadoc (${{ github.sha }})"
