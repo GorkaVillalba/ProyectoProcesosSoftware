@@ -1,0 +1,22 @@
+name: Publish Javadoc to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "pages-${{ github.ref }}"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build Javadoc and deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder - steps añadidos en T-30.2 y T-30.3
+        run: echo "Workflow esqueleto creado en T-30.1"
