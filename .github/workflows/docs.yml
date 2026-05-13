@@ -5,7 +5,8 @@ on:
     branches:
       - main
   workflow_dispatch:
-
+# T-30.5: permiso necesario para que peaceiris/actions-gh-pages pueda
+# pushear a la rama gh-pages desde GITHUB_TOKEN
 permissions:
   contents: write
 
