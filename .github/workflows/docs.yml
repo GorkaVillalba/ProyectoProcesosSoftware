@@ -5,8 +5,7 @@ on:
     branches:
       - main
   workflow_dispatch:
-# T-30.5: permiso necesario para que peaceiris/actions-gh-pages pueda
-# pushear a la rama gh-pages desde GITHUB_TOKEN
+
 permissions:
   contents: write
 
@@ -43,6 +42,18 @@ jobs:
 
       - name: Generate Javadoc
         run: ./gradlew javadoc --no-daemon
+
+      - name: Generate OpenAPI JSON
+        run: ./gradlew generateOpenApiDocs --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: dev
+
+      - name: Upload OpenAPI JSON as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: build/openapi.json
+          retention-days: 30
 
       - name: Deploy Javadoc to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
