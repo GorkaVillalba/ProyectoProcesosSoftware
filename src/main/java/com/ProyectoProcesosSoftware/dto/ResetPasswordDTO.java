@@ -5,6 +5,11 @@ import lombok.Data;
 
 @Data
 public class ResetPasswordDTO {
-    @NotBlank private String token;
-    @NotBlank @Size(min = 6) private String nuevaPassword;
+
+    @NotBlank(message = "El token es obligatorio")
+    private String token;
+
+    @NotBlank(message = "La nueva contraseña es obligatoria")
+    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    private String nuevaPassword;
 }

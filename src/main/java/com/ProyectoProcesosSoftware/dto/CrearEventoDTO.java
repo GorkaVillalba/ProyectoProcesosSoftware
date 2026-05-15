@@ -8,17 +8,27 @@ import java.time.LocalTime;
 
 @Data
 public class CrearEventoDTO {
+
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
+
     private String descripcion;
-    @NotNull @Future
+
+    @NotNull(message = "La fecha es obligatoria")
+    @Future(message = "La fecha del evento debe ser futura")
     private LocalDate fecha;
-    @NotNull
+
+    @NotNull(message = "La hora es obligatoria")
     private LocalTime hora;
-    @NotBlank
+
+    @NotBlank(message = "La ubicación es obligatoria")
     private String ubicacion;
-    @NotNull @Min(1)
+
+    @NotNull(message = "El aforo máximo es obligatorio")
+    @Min(value = 1, message = "El aforo máximo debe ser al menos 1")
     private Integer aforoMaximo;
-    @NotNull @DecimalMin("0.0")
+
+    @NotNull(message = "El precio base es obligatorio")
+    @DecimalMin(value = "0.0", message = "El precio base no puede ser negativo")
     private BigDecimal precioBase;
 }
