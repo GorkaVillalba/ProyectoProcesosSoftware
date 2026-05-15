@@ -13,6 +13,7 @@ import com.ProyectoProcesosSoftware.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,7 +33,7 @@ public class TicketService {
     @Autowired
     private PricingContext pricingContext;
 
-    // US-17: comprar entrada con precio calculado en el momento de la compra
+        // US-17: comprar entrada con precio calculado en el momento de la compra
     @Transactional
     public TicketResponseDTO comprarEntrada(Long eventoId, Long asistenteId) {
         Evento evento = eventoRepository.findById(eventoId)
@@ -79,7 +80,16 @@ public class TicketService {
         if (evento.getEntradasVendidas() >= evento.getAforoMaximo()) {
             evento.setEstado(EstadoEvento.AGOTADO);
         }
-        eventoRepository.save(evento);
+
+        // US-18: bloqueo optimista. Si otro hilo modifica el evento entre la
+        // lectura y este flush, Hibernate lanza ObjectOptimisticLockingFailureException
+        // y devolvemos 409 con un mensaje accionable para el cliente.
+        try {
+            eventoRepository.saveAndFlush(evento);
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            throw new BusinessRuleException(
+                    "La plaza acaba de ser ocupada por otro usuario, inténtalo de nuevo");
+        }
 
         Ticket guardado = ticketRepository.save(ticket);
         return TicketMapper.TicketResponseDTO(guardado, estrategia);

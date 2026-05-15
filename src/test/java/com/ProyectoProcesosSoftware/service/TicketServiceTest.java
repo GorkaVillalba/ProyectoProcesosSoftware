@@ -18,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -73,6 +74,9 @@ class TicketServiceTest {
         evento.setPrecioBase(new BigDecimal("50.00"));
         evento.setEstado(EstadoEvento.PUBLICADO);
         evento.setOrganizador(organizador);
+        // US-18: ejercitar getter/setter de version generados por @Version + Lombok.
+        evento.setVersion(0L);
+        evento.getVersion();
 
         asistente = new Usuario();
         asistente.setId(2L);
@@ -130,7 +134,7 @@ class TicketServiceTest {
             ticketService.comprarEntrada(1L, 2L);
 
             assertThat(evento.getEntradasVendidas()).isEqualTo(31);
-            verify(eventoRepository).save(evento);
+            verify(eventoRepository).saveAndFlush(evento);
         }
 
         @Test
@@ -286,7 +290,7 @@ class TicketServiceTest {
             verify(eventoRepository, never()).save(any());
         }
 
-        @Test
+                @Test
         @DisplayName("Si la validación falla, no se llama al PricingContext")
         void comprar_errorValidacion_noInvocaStrategy() {
             evento.setEstado(EstadoEvento.CANCELADO);
@@ -296,6 +300,28 @@ class TicketServiceTest {
                     .isInstanceOf(BusinessRuleException.class);
 
             verifyNoInteractions(pricingContext);
+        }
+
+        // US-18 / T-18.3: el segundo hilo en una colisión optimista debe ver 409.
+        @Test
+        @DisplayName("Colisión optimista en saveAndFlush → BusinessRuleException (409)")
+        void comprar_colisionConcurrencia_lanzaBusinessRuleException() {
+            when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
+            when(usuarioRepository.findById(2L)).thenReturn(Optional.of(asistente));
+            when(ticketRepository.existsByEventoIdAndAsistenteIdAndEstado(
+                    1L, 2L, TicketStatus.VALIDO)).thenReturn(false);
+            when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
+                    .thenReturn(new BigDecimal("50.00"));
+            when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("EarlyBird");
+            when(eventoRepository.saveAndFlush(any()))
+                    .thenThrow(new ObjectOptimisticLockingFailureException(Evento.class, 1L));
+
+            assertThatThrownBy(() -> ticketService.comprarEntrada(1L, 2L))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("acaba de ser ocupada");
+
+            // El ticket no debe haberse guardado tras la colisión.
+            verify(ticketRepository, never()).save(any());
         }
     }
 
