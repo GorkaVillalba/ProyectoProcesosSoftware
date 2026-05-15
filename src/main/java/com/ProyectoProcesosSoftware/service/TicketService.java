@@ -33,7 +33,7 @@ public class TicketService {
     @Autowired
     private PricingContext pricingContext;
 
-    // US-17: comprar entrada con precio calculado en el momento de la compra
+        // US-17: comprar entrada con precio calculado en el momento de la compra
     @Transactional
     public TicketResponseDTO comprarEntrada(Long eventoId, Long asistenteId) {
         Evento evento = eventoRepository.findById(eventoId)
@@ -76,7 +76,7 @@ public class TicketService {
         ticket.setAsistente(asistente);
         ticket.setPrecioFinal(precioFinal);
 
-                evento.setEntradasVendidas(evento.getEntradasVendidas() + 1);
+        evento.setEntradasVendidas(evento.getEntradasVendidas() + 1);
         if (evento.getEntradasVendidas() >= evento.getAforoMaximo()) {
             evento.setEstado(EstadoEvento.AGOTADO);
         }
@@ -92,7 +92,7 @@ public class TicketService {
         }
 
         Ticket guardado = ticketRepository.save(ticket);
-        return TicketMapper.TicketResponseDTO(guardado, estrategia);;
+        return TicketMapper.TicketResponseDTO(guardado, estrategia);
     }
 
     // T-13 + T-15: cancelar entrada con regla de 48h y liberar plaza
