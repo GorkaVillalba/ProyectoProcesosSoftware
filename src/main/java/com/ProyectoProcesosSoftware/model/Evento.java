@@ -17,6 +17,10 @@ public class Evento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // US-18: bloqueo optimista para evitar sobreventa por concurrencia.
+    @Version
+    private Long version;
+
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
 
