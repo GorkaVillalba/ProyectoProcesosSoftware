@@ -10,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 // ═══════════════════════════════════════════════════════════════
 // T-10 (Persona 4): Login endpoint
@@ -33,6 +36,8 @@ public class AuthController {
     private PasswordRecoveryService passwordRecoveryService;
 
     @PostMapping("/login")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+        content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<?> login(@Valid @RequestBody LoginDTO dto) {
         Usuario usuario = usuarioRepository.findByEmail(dto.getEmail())
                 .orElse(null);
@@ -54,6 +59,8 @@ public class AuthController {
 
     // T-27 (Persona 6): Recuperación de contraseña
     @PostMapping("/forgot-password")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+        content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordDTO dto) {
         passwordRecoveryService.generarTokenRecuperacion(dto.getEmail());
         return ResponseEntity.ok(new MessageResponseDTO(
@@ -61,6 +68,8 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+        content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<MessageResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordDTO dto) {
         passwordRecoveryService.cambiarPassword(dto.getToken(), dto.getNuevaPassword());
         return ResponseEntity.ok(new MessageResponseDTO("Contraseña restablecida correctamente"));

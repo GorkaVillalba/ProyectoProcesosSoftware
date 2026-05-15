@@ -5,12 +5,16 @@ import com.ProyectoProcesosSoftware.dto.MessageResponseDTO;
 import com.ProyectoProcesosSoftware.dto.RegistroUsuarioDTO;
 import com.ProyectoProcesosSoftware.dto.UsuarioResponseDTO;
 import com.ProyectoProcesosSoftware.service.UsuarioService;
+import com.ProyectoProcesosSoftware.dto.ValidationErrorResponseDTO;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequestMapping("/api/users")
@@ -20,6 +24,8 @@ public class UsuarioController {
     private UsuarioService usuarioService;
 
     @PostMapping
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+        content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<UsuarioResponseDTO> registrar(@Valid @RequestBody RegistroUsuarioDTO dto) {
         UsuarioResponseDTO response = usuarioService.registrar(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -33,6 +39,8 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+        content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<UsuarioResponseDTO> editarPerfil(
             @PathVariable Long id,
             @Valid @RequestBody EditarUsuarioDTO dto,
