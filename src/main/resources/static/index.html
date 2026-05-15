@@ -216,6 +216,27 @@
   .badge-regular { background: var(--info-dim); color: var(--info); }
   .badge-lastmin { background: rgba(255,180,0,0.12); color: #ffb400; }
 
+  /* ─── REVIEWS ─── */
+  .reviews-section { margin-top: 1.75rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+  .reviews-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+  .reviews-header h4 { font-family: var(--font-head); font-size: 1rem; font-weight: 700; }
+  .stars-display { display: inline-flex; gap: 2px; }
+  .star { font-size: 15px; color: var(--surface3); }
+  .star.filled { color: #ffb400; }
+  .rating-summary { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .rating-avg { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; color: var(--text); }
+  .review-card { background: var(--surface2); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; }
+  .review-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 4px; }
+  .review-author { font-size: 13px; font-weight: 600; }
+  .review-date { font-size: 11px; color: var(--muted); }
+  .review-comment { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+  .reviews-pagination { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .review-form { background: var(--surface2); border-radius: var(--radius); padding: 14px; margin-top: 1rem; }
+  .review-form h5 { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .star-picker { display: flex; gap: 4px; margin-bottom: 10px; cursor: pointer; }
+  .star-picker .sp { font-size: 22px; color: var(--surface3); transition: color .1s; }
+  .star-picker .sp.active { color: #ffb400; }
+
   /* ─── RESPONSIVE ─── */
   @media (max-width: 600px) {
     .form-row { grid-template-columns: 1fr; }
@@ -423,6 +444,21 @@
       <div class="capacity-bar" style="width:100%"><div class="capacity-fill" id="dm-cap-bar"></div></div>
     </div>
     <div class="modal-actions" id="dm-actions"></div>
+
+    <!-- ── Sección Reseñas ── -->
+    <div class="reviews-section" id="dm-reviews-section" style="display:none">
+      <div class="reviews-header">
+        <h4>Reseñas</h4>
+        <div class="rating-summary">
+          <span class="rating-avg" id="dm-avg">—</span>
+          <div class="stars-display" id="dm-stars"></div>
+          <span id="dm-count"></span>
+        </div>
+      </div>
+      <div id="dm-reviews-list"></div>
+      <div class="reviews-pagination" id="dm-reviews-pagination"></div>
+      <div id="dm-review-form"></div>
+    </div>
   </div>
 </div>
 
@@ -703,9 +739,11 @@ function debounceSearch() {
 
 /* ═══════ EVENT DETAIL ═══════ */
 async function openDetail(id) {
+  currentDetailEventoId = id;
   el('detail-overlay').classList.remove('hidden');
   el('dm-title').textContent = 'Cargando...';
   el('dm-actions').innerHTML = '';
+  el('dm-reviews-section').style.display = 'none';
   try {
     const e = await apiFetch('/events/' + id);
     el('dm-title').textContent = e.nombre;
@@ -747,6 +785,11 @@ async function openDetail(id) {
       actions += '<p style="font-size:13px;color:var(--muted)">Inicia sesión para comprar entradas</p>';
     }
     el('dm-actions').innerHTML = actions;
+
+    // US-26: cargar sección reseñas
+    el('dm-reviews-section').style.display = 'block';
+    loadReviews(id, 0);
+    loadReviewForm(id);
   } catch(e) {
     el('dm-title').textContent = 'Error al cargar';
   }
@@ -981,6 +1024,146 @@ async function doCancelarEntrada(ticketId) {
 /* ═══════ MODALS CLOSE ═══════ */
 function closeReset(e) { if (e.target === el('reset-overlay')) closeResetModal(); }
 function closeResetModal() { el('reset-overlay').classList.add('hidden'); }
+
+/* ═══════ RESEÑAS (US-26) ═══════ */
+let currentDetailEventoId = null;
+let reviewsPage = 0;
+let reviewsTotal = 0;
+let selectedStars = 0;
+
+function starsHtml(rating, size) {
+  return [1,2,3,4,5].map(i =>
+    `<span class="star${i <= Math.round(rating) ? ' filled' : ''}" style="font-size:${size||15}px">★</span>`
+  ).join('');
+}
+
+async function loadReviews(eventoId, page) {
+  page = page || 0;
+  const list = el('dm-reviews-list');
+  list.innerHTML = '<div class="loader-wrap" style="padding:1rem"><div class="spinner"></div></div>';
+  try {
+    const data = await apiFetch(`/events/${eventoId}/reviews?page=${page}&size=5`);
+    reviewsPage = data.number;
+    reviewsTotal = data.totalElements;
+    const reviews = data.content || [];
+
+    // Media y estrellas
+    const avg = data.totalElements > 0
+      ? (reviews.reduce((s, r) => s + r.puntuacion, 0) / reviews.length)
+      : null;
+
+    // Pedir media real del servidor sólo si hay reseñas (via campo del evento)
+    // Usamos la media acumulada desde EventoResponseDTO si está disponible
+    const dmAvg = el('dm-avg');
+    const dmStars = el('dm-stars');
+    const dmCount = el('dm-count');
+
+    if (data.totalElements > 0) {
+      // Calcular la media ponderada real paginando no es fiable; pedimos el detalle del evento
+      apiFetch(`/events/${eventoId}`).then(ev => {
+        const m = parseFloat(ev.puntuacionMedia || 0);
+        dmAvg.textContent = m.toFixed(1);
+        dmStars.innerHTML = starsHtml(m, 15);
+        dmCount.textContent = `(${ev.numeroResenas} reseña${ev.numeroResenas !== 1 ? 's' : ''})`;
+      }).catch(() => {
+        dmAvg.textContent = '—';
+        dmStars.innerHTML = '';
+        dmCount.textContent = `(${data.totalElements})`;
+      });
+    } else {
+      dmAvg.textContent = '—';
+      dmStars.innerHTML = '';
+      dmCount.textContent = '(sin reseñas)';
+    }
+
+    // Listado
+    if (!reviews.length) {
+      list.innerHTML = '<p style="font-size:13px;color:var(--muted);text-align:center;padding:1rem 0">Aún no hay reseñas para este evento.</p>';
+    } else {
+      list.innerHTML = reviews.map(r => `
+        <div class="review-card">
+          <div class="review-card-header">
+            <span class="review-author">${r.asistenteNombre}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="stars-display">${starsHtml(r.puntuacion, 14)}</div>
+              <span class="review-date">${r.fechaCreacion ? formatDate(r.fechaCreacion) : ''}</span>
+            </div>
+          </div>
+          ${r.comentario ? `<div class="review-comment">${r.comentario}</div>` : ''}
+        </div>`).join('');
+    }
+
+    // Paginación
+    const pag = el('dm-reviews-pagination');
+    const totalPages = data.totalPages || 0;
+    if (totalPages > 1) {
+      pag.innerHTML = `
+        <button class="btn btn-sm" ${page === 0 ? 'disabled' : ''} onclick="loadReviews(${eventoId},${page-1})">← Anterior</button>
+        <span>Página ${page+1} / ${totalPages}</span>
+        <button class="btn btn-sm" ${page >= totalPages-1 ? 'disabled' : ''} onclick="loadReviews(${eventoId},${page+1})">Siguiente →</button>`;
+    } else {
+      pag.innerHTML = '';
+    }
+  } catch(e) {
+    list.innerHTML = `<div class="alert alert-err">${e.message}</div>`;
+  }
+}
+
+async function loadReviewForm(eventoId) {
+  const wrap = el('dm-review-form');
+  if (!currentUser || currentUser.rol !== 'ASISTENTE') { wrap.innerHTML = ''; return; }
+
+  // Comprobar si tiene ticket válido
+  let tieneTicket = false;
+  try {
+    const tickets = await apiFetch('/tickets/my');
+    tieneTicket = tickets.some(t => t.eventoId === eventoId && t.estado === 'VALIDO');
+  } catch(e) { tieneTicket = false; }
+
+  if (!tieneTicket) { wrap.innerHTML = ''; return; }
+
+  selectedStars = 0;
+  wrap.innerHTML = `
+    <div class="review-form">
+      <h5>Deja tu reseña</h5>
+      <div class="star-picker" id="star-picker">
+        ${[1,2,3,4,5].map(i => `<span class="sp" data-v="${i}" onclick="pickStar(${i})">★</span>`).join('')}
+      </div>
+      <div id="review-form-alert"></div>
+      <div class="form-group" style="margin-bottom:8px">
+        <textarea id="review-comentario" placeholder="Escribe tu comentario (opcional, máx. 500 caracteres)" maxlength="500" style="min-height:70px"></textarea>
+      </div>
+      <button class="btn btn-accent btn-sm" id="review-submit-btn" onclick="doSubmitReview(${eventoId})">Publicar reseña</button>
+    </div>`;
+}
+
+function pickStar(n) {
+  selectedStars = n;
+  document.querySelectorAll('#star-picker .sp').forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.v) <= n);
+  });
+}
+
+async function doSubmitReview(eventoId) {
+  clearAlert('review-form-alert');
+  if (!selectedStars) {
+    showAlert('review-form-alert', 'Selecciona una puntuación de 1 a 5 estrellas.'); return;
+  }
+  const comentario = el('review-comentario').value.trim();
+  setLoading('review-submit-btn', true);
+  try {
+    await apiFetch(`/events/${eventoId}/reviews`, {
+      method: 'POST',
+      body: { puntuacion: selectedStars, comentario: comentario || null }
+    });
+    el('dm-review-form').innerHTML = '<div class="alert alert-ok" style="margin-top:10px">✓ Reseña publicada correctamente</div>';
+    loadReviews(eventoId, 0);
+  } catch(e) {
+    showAlert('review-form-alert', e.message);
+  } finally {
+    setLoading('review-submit-btn', false);
+  }
+}
 
 /* ═══════ INIT ═══════ */
 loadAuth(); renderNav();
