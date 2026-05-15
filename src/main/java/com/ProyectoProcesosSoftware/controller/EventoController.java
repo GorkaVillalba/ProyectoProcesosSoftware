@@ -10,6 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 // ═══════════════════════════════════════════════════════════════
 // EventoController - Endpoints de eventos
@@ -25,6 +28,8 @@ public class EventoController {
     private EventoService eventoService;
 
     @PostMapping
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+        content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<EventoResponseDTO> crear(
             @Valid @RequestBody CrearEventoDTO dto, Authentication auth) {
         Long orgId = Long.parseLong(auth.getName());
@@ -50,6 +55,8 @@ public class EventoController {
     }
 
     @PutMapping("/{id}")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+        content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<EventoResponseDTO> editar(
             @PathVariable Long id, @Valid @RequestBody EditarEventoDTO dto, Authentication auth) {
         Long orgId = Long.parseLong(auth.getName());
