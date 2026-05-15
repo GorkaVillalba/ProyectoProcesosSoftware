@@ -65,7 +65,7 @@ class EventoServiceTest {
 
         editarDTO = new EditarEventoDTO();
         editarDTO.setNombre("Editado");
-        editarDTO.setFecha(LocalDate.of(2025,6,20));
+        editarDTO.setFecha(LocalDate.now().plusMonths(2));
         editarDTO.setHora(LocalTime.of(21,0));
         editarDTO.setUbicacion("VIP");
         editarDTO.setAforoMaximo(600);
@@ -116,6 +116,31 @@ class EventoServiceTest {
         when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
         assertThatThrownBy(() -> eventoService.editarEvento(1L, editarDTO, 1L))
                 .isInstanceOf(BusinessRuleException.class);
+    }
+
+    // US-20 / T-20.3: la fecha pasada solo se acepta si el evento está FINALIZADO.
+    @Test
+    @DisplayName("Editar fecha pasada en evento PUBLICADO → BusinessRuleException (409)")
+    void editar_fechaPasada_publicado_409() {
+        editarDTO.setFecha(LocalDate.now().minusDays(5));
+        when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
+
+        assertThatThrownBy(() -> eventoService.editarEvento(1L, editarDTO, 1L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("FINALIZADO");
+    }
+
+    @Test
+    @DisplayName("Editar fecha pasada en evento FINALIZADO → exitoso (caso de corrección)")
+    void editar_fechaPasada_finalizado_ok() {
+        evento.setEstado(EstadoEvento.FINALIZADO);
+        editarDTO.setFecha(LocalDate.now().minusDays(5));
+        when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
+        when(eventoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        EventoResponseDTO r = eventoService.editarEvento(1L, editarDTO, 1L);
+
+        assertThat(r.getNombre()).isEqualTo("Editado");
     }
 
     @Test void eliminar_sinVentas() {

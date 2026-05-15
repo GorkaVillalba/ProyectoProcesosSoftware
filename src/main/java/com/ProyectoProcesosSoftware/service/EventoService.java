@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
 
 // ═══════════════════════════════════════════════════════════════
 // T-16 (Persona 4): Servicio de Eventos
@@ -72,6 +73,14 @@ public class EventoService {
         }
         if (dto.getAforoMaximo() < evento.getEntradasVendidas()) {
             throw new BusinessRuleException("No se puede reducir el aforo por debajo de las entradas vendidas");
+        }
+
+        // US-20 / T-20.3: solo se permite asignar una fecha pasada cuando el
+        // evento ya está FINALIZADO (caso de corrección histórica).
+        if (dto.getFecha().isBefore(LocalDate.now())
+                && evento.getEstado() != EstadoEvento.FINALIZADO) {
+            throw new BusinessRuleException(
+                    "Solo se puede asignar una fecha pasada a un evento ya FINALIZADO");
         }
 
         evento.setNombre(dto.getNombre());
