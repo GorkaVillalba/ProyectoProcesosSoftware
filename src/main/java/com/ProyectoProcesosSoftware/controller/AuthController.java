@@ -10,17 +10,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
-// ═══════════════════════════════════════════════════════════════
-// T-10 (Persona 4): Login endpoint
-// T-27 (Persona 6): Password recovery endpoints (se añaden aquí)
-// CREAR en controller/AuthController.java
-// ═══════════════════════════════════════════════════════════════
+
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Autenticación", description = "Login y recuperación de contraseña")
 public class AuthController {
 
     @Autowired
@@ -36,6 +36,10 @@ public class AuthController {
     private PasswordRecoveryService passwordRecoveryService;
 
     @PostMapping("/login")
+    @Operation(
+        summary = "Iniciar sesión",
+        description = "Autentica al usuario con email y contraseña, y devuelve un token JWT junto con los datos básicos del usuario."
+    )
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
         content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<?> login(@Valid @RequestBody LoginDTO dto) {
@@ -57,8 +61,11 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    // T-27 (Persona 6): Recuperación de contraseña
     @PostMapping("/forgot-password")
+    @Operation(
+        summary = "Solicitar recuperación de contraseña",
+        description = "Envía un correo con instrucciones para restablecer la contraseña si el email existe en el sistema."
+    )
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
         content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordDTO dto) {
@@ -68,6 +75,10 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
+        @Operation(
+        summary = "Restablecer contraseña",
+        description = "Cambia la contraseña del usuario usando un token de recuperación válido."
+    )
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
         content = @Content(schema = @Schema(implementation = ValidationErrorResponseDTO.class)))
     public ResponseEntity<MessageResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordDTO dto) {
