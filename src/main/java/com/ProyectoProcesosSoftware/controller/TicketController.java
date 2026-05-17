@@ -15,14 +15,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/events")
+@RequestMapping("/api/tickets")
 @Tag(name = "Entradas", description = "Compra y consulta de entradas a eventos")
 public class TicketController {
 
     @Autowired
     private TicketService ticketService;
 
-    @PostMapping("/{eventoId}/tickets")
+    @PostMapping("/eventos/{eventoId}")
     @Operation(
         summary = "Comprar entrada",
         description = "Permite a un usuario autenticado (asistente) comprar una entrada para un evento específico."
