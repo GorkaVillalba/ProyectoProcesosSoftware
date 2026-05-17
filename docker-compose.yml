@@ -2,9 +2,7 @@
 # T-02 (Persona 1): docker-compose.yml
 # CREAR en la raíz del proyecto
 # ═══════════════════════════════════════════════════════════════
-
 version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
@@ -16,7 +14,12 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
   app:
     build: .
     container_name: eventpass-app
@@ -28,7 +31,7 @@ services:
       JWT_SECRET: eventpass-prod-secret-key-que-debe-tener-al-menos-256-bits-segura-1234567890
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/eventpass?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     depends_on:
-      - mysql
-
+      mysql:
+        condition: service_healthy
 volumes:
   mysql_data:
