@@ -175,3 +175,14 @@ openApi {
     outputFileName.set("openapi.json")
     waitTimeInSeconds.set(60)
 }
+// ──────────────────────────────────────────────────────────────
+// T-29.1: Configurar tarea javadoc con encoding UTF-8
+// ──────────────────────────────────────────────────────────────
+javadoc {
+    destinationDir = layout.buildDirectory.dir("docs/javadoc").get().asFile
+    options.encoding = 'UTF-8'
+    options.docEncoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+    failOnError = false
+}
