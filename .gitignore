@@ -11,5 +11,4 @@
 
 # Spring Boot y base de datos
 *.log
-*.sql
 .DS_Store
