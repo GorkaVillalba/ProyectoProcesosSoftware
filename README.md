@@ -77,6 +77,22 @@ Verificar el umbral mínimo de cobertura (85% de líneas sobre packages de negoc
 
 Se excluyen del cálculo: `config`, `dto`, `exception`, `security`, `model` y la clase `ProyectoApplication`.
 
+## Datos de demo
+
+El perfil demo carga 4 usuarios con contraseña `Demo1234!`, 5 eventos
+cubriendo todos los tramos de precio dinámico y 4 tickets (3 válidos + 1 cancelado).
+
+### Arranque con datos de demo
+./gradlew bootRun --args='--spring.profiles.active=demo'
+
+### Cuentas de demo
+| Email           | Password   | Rol         | Para qué                                  |
+|-----------------|------------|-------------|-------------------------------------------|
+| org@demo.com    | Demo1234!  | Organizador | Crear/editar/eliminar eventos. Ver stats. |
+| alice@demo.com  | Demo1234!  | Asistente   | Tiene 2 entradas válidas.                 |
+| bob@demo.com    | Demo1234!  | Asistente   | Tiene 1 entrada válida.                   |
+| carol@demo.com  | Demo1234!  | Asistente   | Tiene 1 entrada cancelada.                |
+
 
 ## Endpoints Principales
 | Método | Endpoint | Descripción |
