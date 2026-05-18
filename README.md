@@ -1,9 +1,11 @@
 # EventPass - Plataforma de Eventos y Entradas
-![CI Pipeline](https://github.com/GorkaVillalba/ProyectoProcesosSoftware/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/GorkaVillalba/ProyectoProcesosSoftware/actions/workflows/ci.yml/badge.svg)](https://github.com/GorkaVillalba/ProyectoProcesosSoftware/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=coverage)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=bugs)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
 [![Maintainability](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
+[![Swagger UI](https://img.shields.io/badge/Swagger%20UI-localhost%3A8080-green)](http://localhost:8080/swagger-ui/index.html)
 [![Javadoc](https://img.shields.io/badge/Javadoc-online-blue?logo=readthedocs)](https://gorkavillalba.github.io/ProyectoProcesosSoftware/)
 
 
@@ -18,6 +20,25 @@ y a asistentes comprar entradas con precio dinámico según ocupación.
 - **Testing:** JUnit 5 + Mockito
 - **CI/CD:** GitHub Actions
 - **Contenedores:** Docker + Docker Compose
+
+## Arquitectura
+
+```mermaid
+flowchart LR
+    user([Usuario navegador]) -->|HTTPS| frontend["Frontend estático<br/>(HTML/CSS/JS en /static)"]
+    frontend -->|REST + JWT| backend["Backend Spring Boot 3.2"]
+    backend -->|JPA| db_h2[("H2 in-memory<br/>(perfil dev)")]
+    backend -->|JPA| db_mysql[("MySQL 8<br/>(perfil prod/docker)")]
+    backend -.->|Swagger UI| swagger["/swagger-ui/index.html"]
+    subgraph CI ["GitHub Actions"]
+        gh_ci[CI workflow]
+        gh_pages[Docs workflow]
+    end
+    backend -. analizado .-> sonar[SonarCloud]
+    backend -. javadoc .-> ghpages["GitHub Pages<br/>(Javadoc)"]
+    gh_ci --> sonar
+    gh_pages --> ghpages
+```
 
 ## Requisitos
 - Java 17+
@@ -83,11 +104,11 @@ El workflow encargado es `.github/workflows/docs.yml`.
 ## Equipo SCRUM
 | Rol | Persona |
 |-----|---------|
-| Product Owner | [[Asiersanchez10] |
-| Scrum Master | [imZesk] |
-| Desarrolladores | [MikelOyarzabal] |
+| Product Owner | [GorkaVillalba] |
+| Scrum Master | [jukossound] |
+| Desarrolladores | [Asiersanchez10] |
+| Desarrolladores | [imZesk] |
 | Desarrolladores | [Alvaroogaarcia] |
-| Desarrolladores | [jukossound] |
 | Desarrolladores | [Benat27] |
-| Desarrolladores | [GorkaVillalba] |
+| Desarrolladores | [MikelOyarzabal] |
 
