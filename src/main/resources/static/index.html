@@ -237,6 +237,17 @@
   .star-picker .sp { font-size: 22px; color: var(--surface3); transition: color .1s; }
   .star-picker .sp.active { color: #ffb400; }
 
+  /* ─── ESTADÍSTICAS ─── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 2rem; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem 1.25rem; }
+  .metric-card .mc-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+  .metric-card .mc-value { font-family: var(--font-head); font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1; }
+  .metric-card .mc-unit { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .metric-card.accent { border-color: rgba(200,255,0,0.25); background: var(--accent-dim); }
+  .metric-card.accent .mc-value { color: var(--accent); }
+  .stats-chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .stats-chart-wrap h4 { font-family: var(--font-head); font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; }
+
   /* ─── FAVORITOS ─── */
   .heart-btn {
     background: none; border: none; cursor: pointer;
@@ -255,6 +266,7 @@
     .app-container { padding: 1rem; }
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -397,6 +409,21 @@
       </div>
     </div>
     <div id="my-tickets-list"></div>
+  </div>
+
+  <!-- STATS (organizador) -->
+  <div class="page" id="page-stats">
+    <div class="page-header">
+      <h2>📊 Estadísticas</h2>
+    </div>
+    <div id="stats-alert"></div>
+    <div class="stats-grid" id="stats-grid">
+      <div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div></div>
+    </div>
+    <div class="stats-chart-wrap" id="stats-chart-wrap" style="display:none">
+      <h4>Ocupación por evento</h4>
+      <canvas id="stats-chart" height="120"></canvas>
+    </div>
   </div>
 
   <!-- MY FAVORITES (asistente) -->
@@ -613,7 +640,7 @@ function renderNav() {
     na.innerHTML = `
       <span class="nav-user">${currentUser.email}</span>
       <button class="btn btn-sm" onclick="showPage('events')">Eventos</button>
-      ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button>` : `<button class="btn btn-sm" onclick="showPage('my-tickets')">Mis entradas</button><button class="btn btn-sm" onclick="showPage('favorites')">❤ Favoritos</button>`}
+      ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button><button class="btn btn-sm" onclick="showPage('stats')">📊 Estadísticas</button>` : `<button class="btn btn-sm" onclick="showPage('my-tickets')">Mis entradas</button><button class="btn btn-sm" onclick="showPage('favorites')">❤ Favoritos</button>`}
       <button class="btn btn-sm" onclick="showPage('profile')">Perfil</button>
       <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
     `;
@@ -634,6 +661,7 @@ function showPage(name) {
   if (name === 'events') loadEvents();
   if (name === 'my-events') loadMyEvents();
   if (name === 'my-tickets') loadMyTickets();
+  if (name === 'stats') loadStats();
   if (name === 'favorites') loadFavorites();
   if (name === 'profile') loadProfile();
 }
@@ -1190,6 +1218,88 @@ async function doSubmitReview(eventoId) {
   } finally {
     setLoading('review-submit-btn', false);
   }
+}
+
+/* ═══════ ESTADÍSTICAS (US-28) ═══════ */
+async function loadStats() {
+  if (!currentUser) return showPage('login');
+  const grid = el('stats-grid');
+  const chartWrap = el('stats-chart-wrap');
+  grid.innerHTML = '<div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div></div>';
+  chartWrap.style.display = 'none';
+  clearAlert('stats-alert');
+
+  try {
+    const stats = await apiFetch('/users/me/stats');
+
+    grid.innerHTML = `
+      <div class="metric-card accent">
+        <div class="mc-label">Eventos creados</div>
+        <div class="mc-value">${stats.numeroEventos}</div>
+        <div class="mc-unit">eventos en total</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Entradas vendidas</div>
+        <div class="mc-value">${stats.entradasVendidasTotales}</div>
+        <div class="mc-unit">tickets en total</div>
+      </div>
+      <div class="metric-card accent">
+        <div class="mc-label">Ingresos totales</div>
+        <div class="mc-value">€${parseFloat(stats.ingresosTotales).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+        <div class="mc-unit">suma de entradas vendidas</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Ocupación media</div>
+        <div class="mc-value">${parseFloat(stats.porcentajeOcupacionMedia).toFixed(1)}<span style="font-size:1rem">%</span></div>
+        <div class="mc-unit">media sobre todos los eventos</div>
+      </div>`;
+
+    // Gráfico de barras con ocupación por evento
+    renderStatsChart();
+  } catch(e) {
+    grid.innerHTML = '';
+    showAlert('stats-alert', e.message);
+  }
+}
+
+async function renderStatsChart() {
+  const chartWrap = el('stats-chart-wrap');
+  try {
+    const data = await apiFetch('/events?page=0&size=50');
+    const mine = (data.content || []).filter(e => e.organizadorId === currentUser.id);
+    if (!mine.length) return;
+
+    chartWrap.style.display = 'block';
+    const labels = mine.map(e => e.nombre.length > 18 ? e.nombre.slice(0,16) + '…' : e.nombre);
+    const valores = mine.map(e => e.aforoMaximo > 0
+      ? Math.round((e.entradasVendidas / e.aforoMaximo) * 100) : 0);
+
+    // Destruir instancia previa si existe
+    if (window._statsChart) { window._statsChart.destroy(); }
+
+    const ctx = el('stats-chart').getContext('2d');
+    window._statsChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: '% Ocupación',
+          data: valores,
+          backgroundColor: valores.map(v => v >= 80 ? 'rgba(255,90,90,0.7)' : v >= 50 ? 'rgba(91,143,255,0.7)' : 'rgba(200,255,0,0.7)'),
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { color: '#8a899a', callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          x: { ticks: { color: '#8a899a' }, grid: { display: false } }
+        }
+      }
+    });
+  } catch(e) { /* gráfico opcional, no bloquear */ }
 }
 
 /* ═══════ FAVORITOS (US-27) ═══════ */
