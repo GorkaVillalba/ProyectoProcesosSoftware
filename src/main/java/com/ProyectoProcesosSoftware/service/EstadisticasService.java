@@ -35,35 +35,42 @@ public class EstadisticasService {
         }
 
         List<Evento> eventos = eventoRepository.findByOrganizadorId(organizadorId);
+
         EstadisticasOrganizadorDTO dto = new EstadisticasOrganizadorDTO();
 
         if (eventos.isEmpty()) {
-            dto.setNumeroEventos(0);
-            dto.setEntradasVendidasTotales(0);
+            dto.setNumeroEventos(0L);
+            dto.setEntradasVendidasTotales(0L);
             dto.setIngresosTotales(BigDecimal.ZERO);
             dto.setPorcentajeOcupacionMedia(BigDecimal.ZERO);
             return dto;
         }
 
         long entradas = eventos.stream()
-                .mapToLong(e -> e.getEntradasVendidas() == null ? 0 : e.getEntradasVendidas())
+                .mapToLong(e -> e.getEntradasVendidas() == null ? 0L : e.getEntradasVendidas().longValue())
                 .sum();
 
         BigDecimal ingresos = ticketRepository.sumarIngresosByOrganizadorId(organizadorId);
         if (ingresos == null) ingresos = BigDecimal.ZERO;
 
-        BigDecimal sumaPorcentajes = eventos.stream()
+        List<Evento> eventosConAforo = eventos.stream()
                 .filter(e -> e.getAforoMaximo() != null && e.getAforoMaximo() > 0)
-                .map(e -> BigDecimal.valueOf(e.getEntradasVendidas())
-                        .multiply(BigDecimal.valueOf(100))
-                        .divide(BigDecimal.valueOf(e.getAforoMaximo()), 4, RoundingMode.HALF_UP))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .toList();
 
-        BigDecimal ocupacionMedia = eventos.isEmpty()
-                ? BigDecimal.ZERO
-                : sumaPorcentajes.divide(BigDecimal.valueOf(eventos.size()), 2, RoundingMode.HALF_UP);
+        BigDecimal ocupacionMedia;
+        if (eventosConAforo.isEmpty()) {
+            ocupacionMedia = BigDecimal.ZERO;
+        } else {
+            BigDecimal sumaPorcentajes = eventosConAforo.stream()
+                    .map(e -> BigDecimal.valueOf(e.getEntradasVendidas() == null ? 0 : e.getEntradasVendidas())
+                            .multiply(BigDecimal.valueOf(100))
+                            .divide(BigDecimal.valueOf(e.getAforoMaximo()), 4, RoundingMode.HALF_UP))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            ocupacionMedia = sumaPorcentajes.divide(
+                    BigDecimal.valueOf(eventosConAforo.size()), 2, RoundingMode.HALF_UP);
+        }
 
-        dto.setNumeroEventos(eventos.size());
+        dto.setNumeroEventos((long) eventos.size());
         dto.setEntradasVendidasTotales(entradas);
         dto.setIngresosTotales(ingresos.setScale(2, RoundingMode.HALF_UP));
         dto.setPorcentajeOcupacionMedia(ocupacionMedia);
