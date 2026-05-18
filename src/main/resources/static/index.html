@@ -771,11 +771,17 @@ async function openDetail(id) {
     el('dm-cap-text').textContent = `${e.plazasDisponibles} plazas disponibles (${100-pct}%)`;
 
     let actions = '';
-    if (currentUser && currentUser.id === e.organizadorId) {
-      actions += `<button class="btn btn-sm" onclick="openEditEvent(${e.id})">Editar</button>`;
-      if (e.entradasVendidas === 0) {
-        actions += `<button class="btn btn-danger btn-sm" onclick="doDeleteEvent(${e.id})">Eliminar</button>`;
-      }
+    // US-22 / T-22.2: solo se muestran "Editar" y "Eliminar" si el usuario es
+    // ORGANIZADOR y además es el dueño del evento.
+    const esDueño = currentUser
+                  && currentUser.rol === 'ORGANIZADOR'
+                  && currentUser.id === e.organizadorId;
+    if (esDueño) {
+      actions += <button class="btn btn-sm" onclick="openEditEvent(${e.id})">Editar</button>;
+      // US-22 / T-22.3: el botón "Eliminar" se ofrece siempre. Si el evento
+      // tiene tickets vendidos, el backend responde 409 y mostramos el mensaje
+      // claro al usuario (gestionado en doDeleteEvent).
+      actions += <button class="btn btn-danger btn-sm" onclick="doDeleteEvent(${e.id})">Eliminar</button>;
     } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'PUBLICADO' && e.plazasDisponibles > 0) {
       actions += `<div id="dm-purchase-area"><button class="btn btn-accent" id="buy-btn" onclick="doComprarEntrada(${e.id})">Comprar Entrada — €${parseFloat(e.precioActual || e.precioBase).toFixed(2)}</button></div>`;
     } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'AGOTADO') {
@@ -856,10 +862,27 @@ async function doSaveEvent() {
 async function doDeleteEvent(id) {
   if (!confirm('¿Seguro que quieres eliminar este evento?')) return;
   try {
-    await apiFetch('/events/' + id, { method:'DELETE' });
-    closeDetailModal();
-    loadMyEvents();
-  } catch(e) { alert(e.message); }
+    // Usamos fetch directo para distinguir el código de estado (409 vs 403 vs otros).
+    const res = await fetch(API + '/events/' + id, { method: 'DELETE', headers: headers() });
+    if (res.ok || res.status === 204) {
+      closeDetailModal();
+      loadMyEvents();
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 409) {
+      // US-22 / T-22.3: el backend devuelve "No se puede eliminar: tiene X entradas vendidas"
+      alert('No se puede eliminar el evento:\n\n' + (data.message || 'Tiene entradas vendidas.'));
+    } else if (res.status === 403) {
+      alert('No tienes permiso para eliminar este evento.');
+    } else if (res.status === 404) {
+      alert('El evento ya no existe.');
+    } else {
+      alert(data.message || `Error inesperado al eliminar (status ${res.status}).`);
+    }
+  } catch (err) {
+    alert('Error de red al eliminar el evento.');
+  }
 }
 
 function closeEventForm(e) { if (e.target === el('event-form-overlay')) closeEventFormModal(); }
