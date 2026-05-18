@@ -4,6 +4,7 @@ plugins {
     id 'org.springframework.boot' version '3.2.3'
     id 'io.spring.dependency-management' version '1.1.4'
     id "org.sonarqube" version "7.2.3.7755"
+    id "org.springdoc.openapi-gradle-plugin" version "1.8.0"
 }
 
 sonar {
@@ -56,8 +57,13 @@ sourceSets {
 configurations {
     integrationTestImplementation.extendsFrom testImplementation
     integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+    integrationTestCompileOnly.extendsFrom compileOnly
+    integrationTestAnnotationProcessor.extendsFrom annotationProcessor
+
     performanceTestImplementation.extendsFrom testImplementation
     performanceTestRuntimeOnly.extendsFrom testRuntimeOnly
+    performanceTestCompileOnly.extendsFrom compileOnly
+    performanceTestAnnotationProcessor.extendsFrom annotationProcessor
 }
 
 dependencies {
@@ -154,8 +160,29 @@ jacocoTestCoverageVerification {
             limit {
                 counter = 'LINE'
                 value = 'COVEREDRATIO'
-                minimum = 0.85
+                minimum = 0.9
             }
         }
     }
+}
+// ──────────────────────────────────────────────────────────────
+// T-30.7: Configuración del plugin springdoc-openapi
+// Genera build/openapi.json al ejecutar `./gradlew generateOpenApiDocs`
+// ──────────────────────────────────────────────────────────────
+openApi {
+    apiDocsUrl.set("http://localhost:8080/v3/api-docs")
+    outputDir.set(file("$buildDir"))
+    outputFileName.set("openapi.json")
+    waitTimeInSeconds.set(60)
+}
+// ──────────────────────────────────────────────────────────────
+// T-29.1: Configurar tarea javadoc con encoding UTF-8
+// ──────────────────────────────────────────────────────────────
+javadoc {
+    destinationDir = layout.buildDirectory.dir("docs/javadoc").get().asFile
+    options.encoding = 'UTF-8'
+    options.docEncoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+    failOnError = false
 }

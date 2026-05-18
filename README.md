@@ -6,6 +6,7 @@
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
 [![Maintainability](https://sonarcloud.io/api/project_badges/measure?project=GorkaVillalba_ProyectoProcesosSoftware&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=GorkaVillalba_ProyectoProcesosSoftware)
 [![Swagger UI](https://img.shields.io/badge/Swagger%20UI-localhost%3A8080-green)](http://localhost:8080/swagger-ui/index.html)
+[![Javadoc](https://img.shields.io/badge/Javadoc-online-blue?logo=readthedocs)](https://gorkavillalba.github.io/ProyectoProcesosSoftware/)
 
 
 ## Descripción
@@ -90,6 +91,15 @@ Se excluyen del cálculo: `config`, `dto`, `exception`, `security`, `model` y la
 | GET | /api/events/{id} | Detalle evento |
 | PUT | /api/events/{id} | Editar evento |
 | DELETE | /api/events/{id} | Eliminar evento |
+
+## Documentación técnica (Javadoc)
+
+La documentación técnica del proyecto se genera automáticamente en cada push a `main`
+y se publica en GitHub Pages:
+
+🔗 https://gorkavillalba.github.io/ProyectoProcesosSoftware/
+
+El workflow encargado es `.github/workflows/docs.yml`.
 
 ## Equipo SCRUM
 | Rol | Persona |

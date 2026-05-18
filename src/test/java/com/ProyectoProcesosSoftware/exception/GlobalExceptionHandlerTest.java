@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import com.ProyectoProcesosSoftware.dto.ValidationErrorResponseDTO;
 
 import java.util.List;
 
@@ -69,21 +70,25 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getStatus()).isEqualTo(409);
     }
 
-    @Test
-    @DisplayName("MethodArgumentNotValidException devuelve 400 con mensaje de campos")
+        @Test
+    @DisplayName("MethodArgumentNotValidException devuelve 400 con mapa de errores por campo")
     void handleValidation_devuelve400() {
         MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = mock(BindingResult.class);
-        FieldError fieldError = new FieldError("obj", "email", "El email es obligatorio");
+        FieldError emailError = new FieldError("obj", "email", "El email es obligatorio");
+        FieldError passError = new FieldError("obj", "password", "La contraseña debe tener al menos 6 caracteres");
 
         when(ex.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
+        when(bindingResult.getFieldErrors()).thenReturn(List.of(emailError, passError));
 
-        ResponseEntity<ErrorResponseDTO> response = handler.handleValidation(ex);
+        ResponseEntity<ValidationErrorResponseDTO> response = handler.handleValidation(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().getMessage()).contains("El email es obligatorio");
         assertThat(response.getBody().getStatus()).isEqualTo(400);
+        assertThat(response.getBody().getMessage()).isEqualTo("Error de validación");
+        assertThat(response.getBody().getErrors())
+                .containsEntry("email", "El email es obligatorio")
+                .containsEntry("password", "La contraseña debe tener al menos 6 caracteres");
     }
 
     @Test
