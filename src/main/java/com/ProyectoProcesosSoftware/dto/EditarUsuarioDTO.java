@@ -5,8 +5,11 @@ import lombok.Data;
 
 @Data
 public class EditarUsuarioDTO {
+
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
-    @NotBlank @Email
+
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "El email debe ser válido")
     private String email;
 }

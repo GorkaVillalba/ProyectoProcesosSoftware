@@ -2,7 +2,7 @@
 # T-02 (Persona 1): docker-compose.yml
 # CREAR en la raíz del proyecto
 # ═══════════════════════════════════════════════════════════════
-version: '3.8'
+
 services:
   mysql:
     image: mysql:8.0

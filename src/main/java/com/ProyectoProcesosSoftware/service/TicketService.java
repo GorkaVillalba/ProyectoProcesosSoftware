@@ -13,10 +13,10 @@ import com.ProyectoProcesosSoftware.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class TicketService {
@@ -33,12 +33,14 @@ public class TicketService {
     @Autowired
     private PricingContext pricingContext;
 
-    // US-17: comprar entrada con precio calculado en el momento de la compra
+        // US-17: comprar entrada con precio calculado en el momento de la compra
     @Transactional
     public TicketResponseDTO comprarEntrada(Long eventoId, Long asistenteId) {
         Evento evento = eventoRepository.findById(eventoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Evento no encontrado con id: " + eventoId));
-
+        if (evento.getEstado() == EstadoEvento.AGOTADO) {
+            throw new BusinessRuleException("El evento está agotado");
+        }
         if (evento.getEstado() != EstadoEvento.PUBLICADO) {
             throw new BusinessRuleException("Solo se pueden comprar entradas de eventos publicados");
         }
@@ -54,11 +56,11 @@ public class TicketService {
             throw new UnauthorizedActionException("Solo los asistentes pueden comprar entradas");
         }
 
-        if (ticketRepository.existsByEventoIdAndAsistenteId(eventoId, asistenteId)) {
+        if (ticketRepository.existsByEventoIdAndAsistenteIdAndEstado(
+                eventoId, asistenteId, TicketStatus.VALIDO)) {
             throw new BusinessRuleException("Ya tienes una entrada para este evento");
         }
 
-        // US-17: el precio se calcula en el momento de la compra con la estrategia activa
         BigDecimal precioFinal = pricingContext.calcularPrecio(
                 evento.getPrecioBase(),
                 evento.getEntradasVendidas(),
@@ -69,20 +71,66 @@ public class TicketService {
                 evento.getAforoMaximo()
         );
 
-        // Crear el ticket guardando el precioFinal calculado
         Ticket ticket = new Ticket();
         ticket.setEvento(evento);
         ticket.setAsistente(asistente);
         ticket.setPrecioFinal(precioFinal);
 
-        // Incrementar entradas vendidas
         evento.setEntradasVendidas(evento.getEntradasVendidas() + 1);
         if (evento.getEntradasVendidas() >= evento.getAforoMaximo()) {
             evento.setEstado(EstadoEvento.AGOTADO);
         }
+
+        // US-18: bloqueo optimista. Si otro hilo modifica el evento entre la
+        // lectura y este flush, Hibernate lanza ObjectOptimisticLockingFailureException
+        // y devolvemos 409 con un mensaje accionable para el cliente.
+        try {
+            eventoRepository.saveAndFlush(evento);
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            throw new BusinessRuleException(
+                    "La plaza acaba de ser ocupada por otro usuario, inténtalo de nuevo");
+        }
+
+        Ticket guardado = ticketRepository.save(ticket);
+        return TicketMapper.TicketResponseDTO(guardado, estrategia);
+    }
+
+    // T-13 + T-15: cancelar entrada con regla de 48h y liberar plaza
+    @Transactional
+    public TicketResponseDTO cancelarEntrada(Long ticketId, Long usuarioId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entrada no encontrada con id: " + ticketId));
+
+        if (!ticket.getAsistente().getId().equals(usuarioId)) {
+            throw new UnauthorizedActionException("No puedes cancelar una entrada que no es tuya");
+        }
+
+        if (ticket.getEstado() != TicketStatus.VALIDO) {
+            throw new BusinessRuleException("La entrada ya está cancelada");
+        }
+
+        Evento evento = ticket.getEvento();
+        java.time.LocalDateTime fechaEvento =
+                java.time.LocalDateTime.of(evento.getFecha(), evento.getHora());
+        long minutosHastaEvento = java.time.Duration.between(
+                java.time.LocalDateTime.now(), fechaEvento).toMinutes();
+        if (minutosHastaEvento <= 48 * 60) {
+            throw new BusinessRuleException(
+                    "No se puede cancelar: faltan menos de 48h para el evento");
+        }
+
+        ticket.setEstado(TicketStatus.CANCELADO);
+
+        evento.setEntradasVendidas(Math.max(0, evento.getEntradasVendidas() - 1));
+        if (evento.getEstado() == EstadoEvento.AGOTADO
+                && evento.getEntradasVendidas() < evento.getAforoMaximo()) {
+            evento.setEstado(EstadoEvento.PUBLICADO);
+        }
         eventoRepository.save(evento);
 
         Ticket guardado = ticketRepository.save(ticket);
+        String estrategia = pricingContext.nombreEstrategia(
+                evento.getEntradasVendidas(), evento.getAforoMaximo());
         return TicketMapper.TicketResponseDTO(guardado, estrategia);
     }
 
@@ -92,18 +140,16 @@ public class TicketService {
                 .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
                         t.getEvento().getEntradasVendidas(),
                         t.getEvento().getAforoMaximo())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    //Consultar mis entradas ordenadas por fecha de compra descendente
+    // Consultar mis entradas ordenadas por fecha de compra descendente
     public List<TicketResponseDTO> getMisEntradas(Long usuarioId) {
         return ticketRepository.findByAsistenteIdOrderByFechaCompraDesc(usuarioId)
                 .stream()
                 .map(t -> TicketMapper.TicketResponseDTO(t, pricingContext.nombreEstrategia(
                         t.getEvento().getEntradasVendidas(),
                         t.getEvento().getAforoMaximo())))
-                .collect(Collectors.toList());
+                .toList();
     }
-
-    
 }

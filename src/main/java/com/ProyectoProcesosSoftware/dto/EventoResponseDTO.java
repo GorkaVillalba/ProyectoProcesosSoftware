@@ -22,4 +22,16 @@ public class EventoResponseDTO {
     private String estado;
     private String organizadorNombre;
     private Long organizadorId;
+
+    /**
+     * Media de las puntuaciones de las reseñas del evento.
+     * Será 0.0 si el evento aún no tiene reseñas.
+     */
+    private BigDecimal puntuacionMedia;
+
+    /**
+     * Número total de reseñas del evento.
+     * Será 0 si el evento aún no tiene reseñas.
+     */
+    private Long numeroResenas;
 }

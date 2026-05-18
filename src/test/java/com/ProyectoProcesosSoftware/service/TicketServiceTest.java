@@ -18,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -73,6 +74,9 @@ class TicketServiceTest {
         evento.setPrecioBase(new BigDecimal("50.00"));
         evento.setEstado(EstadoEvento.PUBLICADO);
         evento.setOrganizador(organizador);
+        // US-18: ejercitar getter/setter de version generados por @Version + Lombok.
+        evento.setVersion(0L);
+        evento.getVersion();
 
         asistente = new Usuario();
         asistente.setId(2L);
@@ -130,7 +134,7 @@ class TicketServiceTest {
             ticketService.comprarEntrada(1L, 2L);
 
             assertThat(evento.getEntradasVendidas()).isEqualTo(31);
-            verify(eventoRepository).save(evento);
+            verify(eventoRepository).saveAndFlush(evento);
         }
 
         @Test
@@ -170,7 +174,7 @@ class TicketServiceTest {
         private void stubCompraValida(BigDecimal precio, String estrategia) {
             when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
             when(usuarioRepository.findById(2L)).thenReturn(Optional.of(asistente));
-            when(ticketRepository.existsByEventoIdAndAsistenteId(1L, 2L)).thenReturn(false);
+            when(ticketRepository.existsByEventoIdAndAsistenteIdAndEstado(1L, 2L, TicketStatus.VALIDO)).thenReturn(false);
             when(pricingContext.calcularPrecio(any(), anyInt(), anyInt())).thenReturn(precio);
             when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn(estrategia);
             when(ticketRepository.save(any())).thenAnswer(inv -> {
@@ -276,7 +280,7 @@ class TicketServiceTest {
         void comprar_duplicado() {
             when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
             when(usuarioRepository.findById(2L)).thenReturn(Optional.of(asistente));
-            when(ticketRepository.existsByEventoIdAndAsistenteId(1L, 2L)).thenReturn(true);
+            when(ticketRepository.existsByEventoIdAndAsistenteIdAndEstado(1L, 2L, TicketStatus.VALIDO)).thenReturn(true);
 
             assertThatThrownBy(() -> ticketService.comprarEntrada(1L, 2L))
                     .isInstanceOf(BusinessRuleException.class)
@@ -286,7 +290,7 @@ class TicketServiceTest {
             verify(eventoRepository, never()).save(any());
         }
 
-        @Test
+                @Test
         @DisplayName("Si la validación falla, no se llama al PricingContext")
         void comprar_errorValidacion_noInvocaStrategy() {
             evento.setEstado(EstadoEvento.CANCELADO);
@@ -296,6 +300,28 @@ class TicketServiceTest {
                     .isInstanceOf(BusinessRuleException.class);
 
             verifyNoInteractions(pricingContext);
+        }
+
+        // US-18 / T-18.3: el segundo hilo en una colisión optimista debe ver 409.
+        @Test
+        @DisplayName("Colisión optimista en saveAndFlush → BusinessRuleException (409)")
+        void comprar_colisionConcurrencia_lanzaBusinessRuleException() {
+            when(eventoRepository.findById(1L)).thenReturn(Optional.of(evento));
+            when(usuarioRepository.findById(2L)).thenReturn(Optional.of(asistente));
+            when(ticketRepository.existsByEventoIdAndAsistenteIdAndEstado(
+                    1L, 2L, TicketStatus.VALIDO)).thenReturn(false);
+            when(pricingContext.calcularPrecio(any(), anyInt(), anyInt()))
+                    .thenReturn(new BigDecimal("50.00"));
+            when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("EarlyBird");
+            when(eventoRepository.saveAndFlush(any()))
+                    .thenThrow(new ObjectOptimisticLockingFailureException(Evento.class, 1L));
+
+            assertThatThrownBy(() -> ticketService.comprarEntrada(1L, 2L))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("acaba de ser ocupada");
+
+            // El ticket no debe haberse guardado tras la colisión.
+            verify(ticketRepository, never()).save(any());
         }
     }
 
@@ -360,5 +386,151 @@ class TicketServiceTest {
             t.setFechaCompra(java.time.LocalDateTime.now());
             return t;
         }
+    }
+
+        // ─────────────────────────────────────────────────────────────
+    // T-20: cancelarEntrada
+    // ─────────────────────────────────────────────────────────────
+
+    private Ticket ticketValido(Long id, Usuario u, Evento e) {
+        Ticket t = new Ticket();
+        t.setId(id);
+        t.setUuid("uuid-" + id);
+        t.setEvento(e);
+        t.setAsistente(u);
+        t.setEstado(TicketStatus.VALIDO);
+        t.setPrecioFinal(new BigDecimal("50.00"));
+        t.setFechaCompra(java.time.LocalDateTime.now());
+        return t;
+    }
+
+    @Test
+    @DisplayName("Cancelación exitosa → estado pasa a CANCELADO")
+    void cancelar_exitoso() {
+        evento.setFecha(LocalDate.now().plusDays(10));
+        Ticket t = ticketValido(5L, asistente, evento);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
+        when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("EarlyBird");
+
+        ticketService.cancelarEntrada(5L, 2L);
+
+        assertThat(t.getEstado()).isEqualTo(TicketStatus.CANCELADO);
+    }
+
+    @Test
+    @DisplayName("Cancelar entrada de otro usuario → UnauthorizedActionException (403)")
+    void cancelar_otroUsuario_403() {
+        Ticket t = ticketValido(5L, asistente, evento);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
+
+        assertThatThrownBy(() -> ticketService.cancelarEntrada(5L, 999L))
+                .isInstanceOf(UnauthorizedActionException.class);
+    }
+
+    @Test
+    @DisplayName("Cancelar entrada ya cancelada → BusinessRuleException")
+    void cancelar_yaCancelada_400() {
+        Ticket t = ticketValido(5L, asistente, evento);
+        t.setEstado(TicketStatus.CANCELADO);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
+
+        assertThatThrownBy(() -> ticketService.cancelarEntrada(5L, 2L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("ya está cancelada");
+    }
+
+    @Test
+    @DisplayName("Cancelar con menos de 48h → BusinessRuleException")
+    void cancelar_menos48h_400() {
+        evento.setFecha(LocalDate.now());
+        evento.setHora(LocalTime.now().plusHours(10));
+        Ticket t = ticketValido(5L, asistente, evento);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
+
+        assertThatThrownBy(() -> ticketService.cancelarEntrada(5L, 2L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("48h");
+    }
+
+    @Test
+    @DisplayName("Cancelar con exactamente 48h → BusinessRuleException (borde)")
+    void cancelar_exactamente48h_400() {
+        java.time.LocalDateTime fechaEvento = java.time.LocalDateTime.now().plusHours(48);
+        evento.setFecha(fechaEvento.toLocalDate());
+        evento.setHora(fechaEvento.toLocalTime());
+        Ticket t = ticketValido(5L, asistente, evento);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
+
+        assertThatThrownBy(() -> ticketService.cancelarEntrada(5L, 2L))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    @DisplayName("Cancelar con 48h+1min → cancelación exitosa (borde)")
+    void cancelar_48hMas1min_exitoso() {
+        java.time.LocalDateTime fechaEvento =
+                java.time.LocalDateTime.now().plusHours(48).plusMinutes(2);
+        evento.setFecha(fechaEvento.toLocalDate());
+        evento.setHora(fechaEvento.toLocalTime());
+        Ticket t = ticketValido(5L, asistente, evento);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
+        when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("EarlyBird");
+
+        ticketService.cancelarEntrada(5L, 2L);
+
+        assertThat(t.getEstado()).isEqualTo(TicketStatus.CANCELADO);
+    }
+
+    @Test
+    @DisplayName("Cancelar → entradasVendidas se decrementa en 1")
+    void cancelar_decrementaEntradasVendidas() {
+        evento.setFecha(LocalDate.now().plusDays(10));
+        evento.setEntradasVendidas(30);
+        Ticket t = ticketValido(5L, asistente, evento);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
+        when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("EarlyBird");
+
+        ticketService.cancelarEntrada(5L, 2L);
+
+        assertThat(evento.getEntradasVendidas()).isEqualTo(29);
+        verify(eventoRepository).save(evento);
+    }
+
+    @Test
+    @DisplayName("Cancelar entrada en evento AGOTADO → estado vuelve a PUBLICADO")
+    void cancelar_eventoAgotado_vuelvePublicado() {
+        evento.setFecha(LocalDate.now().plusDays(10));
+        evento.setAforoMaximo(100);
+        evento.setEntradasVendidas(100);
+        evento.setEstado(EstadoEvento.AGOTADO);
+        Ticket t = ticketValido(5L, asistente, evento);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
+        when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("LastMinute");
+
+        ticketService.cancelarEntrada(5L, 2L);
+
+        assertThat(evento.getEstado()).isEqualTo(EstadoEvento.PUBLICADO);
+        assertThat(evento.getEntradasVendidas()).isEqualTo(99);
+    }
+
+    @Test
+    @DisplayName("Cancelar entrada en evento PUBLICADO → sigue en PUBLICADO")
+    void cancelar_eventoPublicado_sigueIgual() {
+        evento.setFecha(LocalDate.now().plusDays(10));
+        evento.setAforoMaximo(100);
+        evento.setEntradasVendidas(50);
+        evento.setEstado(EstadoEvento.PUBLICADO);
+        Ticket t = ticketValido(5L, asistente, evento);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(t));
+        when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(pricingContext.nombreEstrategia(anyInt(), anyInt())).thenReturn("EarlyBird");
+
+        ticketService.cancelarEntrada(5L, 2L);
+
+        assertThat(evento.getEstado()).isEqualTo(EstadoEvento.PUBLICADO);
     }
 }
