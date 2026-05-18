@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/users/me")
 public class EstadisticasController {
+	
 
     @Autowired
     private EstadisticasService estadisticasService;
