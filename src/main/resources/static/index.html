@@ -265,6 +265,38 @@
     nav { padding: 0 1rem; }
     .app-container { padding: 1rem; }
   }
+
+  /* ─── STATS (US-28) ─── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 2rem;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 1.25rem;
+    text-align: left;
+    transition: border-color .15s, transform .15s;
+  }
+  .metric-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .metric-label {
+    font-size: 12px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .5px;
+    margin-bottom: 0.5rem;
+  }
+  .metric-value {
+    font-family: var(--font-head);
+    font-size: 1.9rem; font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .metric-value .unit {
+    font-size: 1rem; color: var(--muted); font-weight: 500; margin-left: 4px;
+  }
+  .metric-value.accent { color: var(--accent); }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -458,6 +490,16 @@
         <button class="btn btn-sm" onclick="startEditProfile()">Editar perfil</button>
         <button class="btn btn-danger btn-sm" onclick="doDeleteAccount()">Eliminar cuenta</button>
       </div>
+    </div>
+  </div>
+
+ <!-- STATS (US-28, solo ORGANIZADOR) -->
+  <div class="page" id="page-stats">
+    <div class="page-header">
+      <h2>Mis estadísticas</h2>
+    </div>
+    <div id="stats-content">
+      <div class="loader-wrap"><div class="spinner"></div></div>
     </div>
   </div>
 
@@ -664,6 +706,7 @@ function showPage(name) {
   if (name === 'stats') loadStats();
   if (name === 'favorites') loadFavorites();
   if (name === 'profile') loadProfile();
+  if (name === 'stats') loadStats();
 }
 
 /* ═══════ API CALLS ═══════ */
