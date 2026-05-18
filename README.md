@@ -53,9 +53,50 @@ La app arranca en http://localhost:8080
 Consola H2: http://localhost:8080/h2-console
 
 ## Ejecución con Docker (MySQL)
+
+### Prerrequisitos
+- **Docker Desktop arrancado** antes de cualquier comando `docker-compose`.
+  En Windows/Mac es obligatorio: Docker Desktop proporciona el daemon (motor)
+  de Docker. Sin él, `docker-compose` falla con un error de tipo
+  `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`
+  (Windows) o equivalente. Solo en Linux el daemon puede correr como servicio
+  del sistema sin UI.
+- Puertos `8080` (app) y `3306` (MySQL) libres en el host.
+
+### Arranque
 ```bash
-docker-compose up --build
+docker-compose up --build -d
 ```
+La primera build tarda ~1–3 min (descarga JDK + dependencias Gradle + compila).
+Cuando termina, la app está en http://localhost:8080.
+
+### Smoke test manual (T-24.3)
+Con los contenedores arriba, hacer el flujo en el navegador:
+**registro → login → comprar entrada → cancelar → logout**.
+
+Verificar persistencia (clave: **NO usar `-v`** para conservar el volumen
+`mysql_data`):
+```bash
+docker-compose down       # mantiene los datos
+docker-compose up -d
+# La cuenta y la entrada cancelada deben seguir ahí.
+```
+
+Limpieza total (borra los datos):
+```bash
+docker-compose down -v    # también elimina el volumen mysql_data
+```
+
+### Troubleshooting
+
+| Síntoma | Causa | Solución |
+|---|---|---|
+| `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine` | Docker Desktop no está arrancado | Abrir Docker Desktop y esperar a que el icono esté en verde antes de relanzar |
+| Se queda en `gradle build` mucho rato | Primera build descarga JDK + dependencias (~45s–3min es normal) | Esperar. Si tarda más de 5 min, revisar recursos asignados en Docker Desktop → Settings → Resources |
+| `port 8080/3306 already in use` | Otro proceso ocupa el puerto | Cerrar el proceso o cambiar el mapeo en `docker-compose.yml` |
+| `eventpass-app` se reinicia en bucle | Suele ser conexión a MySQL | `docker-compose logs app` y `docker-compose logs mysql` para ver el error |
+| Los datos no persisten tras `down`/`up` | Se usó `docker-compose down -v` (borra volúmenes) | Usar `down` sin `-v` |
+
 ## Tests y cobertura
 
 Ejecutar tests unitarios:

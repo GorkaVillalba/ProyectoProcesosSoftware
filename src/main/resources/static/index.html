@@ -237,6 +237,27 @@
   .star-picker .sp { font-size: 22px; color: var(--surface3); transition: color .1s; }
   .star-picker .sp.active { color: #ffb400; }
 
+  /* ─── ESTADÍSTICAS ─── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 2rem; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem 1.25rem; }
+  .metric-card .mc-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+  .metric-card .mc-value { font-family: var(--font-head); font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1; }
+  .metric-card .mc-unit { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .metric-card.accent { border-color: rgba(200,255,0,0.25); background: var(--accent-dim); }
+  .metric-card.accent .mc-value { color: var(--accent); }
+  .stats-chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .stats-chart-wrap h4 { font-family: var(--font-head); font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; }
+
+  /* ─── FAVORITOS ─── */
+  .heart-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; line-height: 1; padding: 2px 4px;
+    color: var(--muted); transition: color .15s, transform .15s;
+    flex-shrink: 0;
+  }
+  .heart-btn:hover { transform: scale(1.2); }
+  .heart-btn.fav { color: #ff5b8f; }
+
   /* ─── RESPONSIVE ─── */
   @media (max-width: 600px) {
     .form-row { grid-template-columns: 1fr; }
@@ -277,6 +298,7 @@
   }
   .metric-value.accent { color: var(--accent); }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -419,6 +441,29 @@
       </div>
     </div>
     <div id="my-tickets-list"></div>
+  </div>
+
+  <!-- STATS (organizador) -->
+  <div class="page" id="page-stats">
+    <div class="page-header">
+      <h2>📊 Estadísticas</h2>
+    </div>
+    <div id="stats-alert"></div>
+    <div class="stats-grid" id="stats-grid">
+      <div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div></div>
+    </div>
+    <div class="stats-chart-wrap" id="stats-chart-wrap" style="display:none">
+      <h4>Ocupación por evento</h4>
+      <canvas id="stats-chart" height="120"></canvas>
+    </div>
+  </div>
+
+  <!-- MY FAVORITES (asistente) -->
+  <div class="page" id="page-favorites">
+    <div class="page-header">
+      <h2>❤ Mis Favoritos</h2>
+    </div>
+    <div id="favorites-list"></div>
   </div>
 
   <!-- PROFILE -->
@@ -637,8 +682,7 @@ function renderNav() {
     na.innerHTML = `
       <span class="nav-user">${currentUser.email}</span>
       <button class="btn btn-sm" onclick="showPage('events')">Eventos</button>
-      ${isOrg ? <button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button> : <button class="btn btn-sm" onclick="showPage('my-tickets')">Mis entradas</button>}
-      ${isOrg ? <button class="btn btn-sm" onclick="showPage('stats')">Estadísticas</button> : ''}
+      ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button><button class="btn btn-sm" onclick="showPage('stats')">📊 Estadísticas</button>` : `<button class="btn btn-sm" onclick="showPage('my-tickets')">Mis entradas</button><button class="btn btn-sm" onclick="showPage('favorites')">❤ Favoritos</button>`}
       <button class="btn btn-sm" onclick="showPage('profile')">Perfil</button>
       <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
     `;
@@ -659,6 +703,8 @@ function showPage(name) {
   if (name === 'events') loadEvents();
   if (name === 'my-events') loadMyEvents();
   if (name === 'my-tickets') loadMyTickets();
+  if (name === 'stats') loadStats();
+  if (name === 'favorites') loadFavorites();
   if (name === 'profile') loadProfile();
   if (name === 'stats') loadStats();
 }
@@ -681,7 +727,7 @@ async function doLogin() {
   setLoading('login-btn', true);
   try {
     const data = await apiFetch('/auth/login', { method:'POST', body:{ email:el('login-email').value, password:el('login-pass').value } });
-    saveAuth(data); renderNav(); showPage('events');
+    saveAuth(data); renderNav(); await syncFavoritos(); showPage('events');
   } catch(e) { showAlert('login-alert', e.message); }
   finally { setLoading('login-btn', false); }
 }
@@ -726,6 +772,7 @@ async function loadEvents() {
     if (nombre) params.set('nombre', nombre);
     if (ubicacion) params.set('ubicacion', ubicacion);
     const data = await apiFetch('/events?' + params);
+    await syncFavoritos();
     renderEventCards(list, data.content || [], false);
   } catch(e) {
     list.innerHTML = `<div class="alert alert-err">${e.message}</div>`;
@@ -755,11 +802,18 @@ function renderEventCards(container, events, isOwner) {
 
 function eventCardHtml(e, isOwner) {
   const pct = e.aforoMaximo ? Math.round((e.entradasVendidas / e.aforoMaximo) * 100) : 0;
+  const isFav = favoritosSet.has(e.id);
+  const heartClass = isFav ? 'heart-btn fav' : 'heart-btn';
+  const heartTip = isFav ? 'Quitar de favoritos' : 'Añadir a favoritos';
+  const showHeart = currentUser && currentUser.rol === 'ASISTENTE';
   return `
     <div class="event-card" onclick="openDetail(${e.id})">
       <div class="ec-header">
         <div class="ec-title">${e.nombre}</div>
-        <div style="display:flex;gap:4px;align-items:center">${availBadge(e)} ${isOwner ? badgeHtml(e.estado) : ''}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          ${availBadge(e)} ${isOwner ? badgeHtml(e.estado) : ''}
+          ${showHeart ? `<button class="${heartClass}" title="${heartTip}" onclick="event.stopPropagation();toggleFavorito(${e.id},this)">${isFav ? '♥' : '♡'}</button>` : ''}
+        </div>
       </div>
       <div class="ec-meta">
         <span>📅 ${formatDate(e.fecha)} · ${e.hora ? e.hora.slice(0,5) : ''}</span>
@@ -815,11 +869,17 @@ async function openDetail(id) {
     el('dm-cap-text').textContent = `${e.plazasDisponibles} plazas disponibles (${100-pct}%)`;
 
     let actions = '';
-    if (currentUser && currentUser.id === e.organizadorId) {
-      actions += `<button class="btn btn-sm" onclick="openEditEvent(${e.id})">Editar</button>`;
-      if (e.entradasVendidas === 0) {
-        actions += `<button class="btn btn-danger btn-sm" onclick="doDeleteEvent(${e.id})">Eliminar</button>`;
-      }
+    // US-22 / T-22.2: solo se muestran "Editar" y "Eliminar" si el usuario es
+    // ORGANIZADOR y además es el dueño del evento.
+    const esDueño = currentUser
+                  && currentUser.rol === 'ORGANIZADOR'
+                  && currentUser.id === e.organizadorId;
+    if (esDueño) {
+      actions += <button class="btn btn-sm" onclick="openEditEvent(${e.id})">Editar</button>;
+      // US-22 / T-22.3: el botón "Eliminar" se ofrece siempre. Si el evento
+      // tiene tickets vendidos, el backend responde 409 y mostramos el mensaje
+      // claro al usuario (gestionado en doDeleteEvent).
+      actions += <button class="btn btn-danger btn-sm" onclick="doDeleteEvent(${e.id})">Eliminar</button>;
     } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'PUBLICADO' && e.plazasDisponibles > 0) {
       actions += `<div id="dm-purchase-area"><button class="btn btn-accent" id="buy-btn" onclick="doComprarEntrada(${e.id})">Comprar Entrada — €${parseFloat(e.precioActual || e.precioBase).toFixed(2)}</button></div>`;
     } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'AGOTADO') {
@@ -900,10 +960,27 @@ async function doSaveEvent() {
 async function doDeleteEvent(id) {
   if (!confirm('¿Seguro que quieres eliminar este evento?')) return;
   try {
-    await apiFetch('/events/' + id, { method:'DELETE' });
-    closeDetailModal();
-    loadMyEvents();
-  } catch(e) { alert(e.message); }
+    // Usamos fetch directo para distinguir el código de estado (409 vs 403 vs otros).
+    const res = await fetch(API + '/events/' + id, { method: 'DELETE', headers: headers() });
+    if (res.ok || res.status === 204) {
+      closeDetailModal();
+      loadMyEvents();
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 409) {
+      // US-22 / T-22.3: el backend devuelve "No se puede eliminar: tiene X entradas vendidas"
+      alert('No se puede eliminar el evento:\n\n' + (data.message || 'Tiene entradas vendidas.'));
+    } else if (res.status === 403) {
+      alert('No tienes permiso para eliminar este evento.');
+    } else if (res.status === 404) {
+      alert('El evento ya no existe.');
+    } else {
+      alert(data.message || `Error inesperado al eliminar (status ${res.status}).`);
+    }
+  } catch (err) {
+    alert('Error de red al eliminar el evento.');
+  }
 }
 
 function closeEventForm(e) { if (e.target === el('event-form-overlay')) closeEventFormModal(); }
@@ -1209,48 +1286,143 @@ async function doSubmitReview(eventoId) {
   }
 }
 
-/* ═══════ INIT ═══════ */
-loadAuth(); renderNav();
-
-
-/* ═══════ STATS (US-28) ═══════ */
+/* ═══════ ESTADÍSTICAS (US-28) ═══════ */
 async function loadStats() {
   if (!currentUser) return showPage('login');
-  if (currentUser.rol !== 'ORGANIZADOR') {
-    el('stats-content').innerHTML = <div class="alert alert-err">Solo los organizadores tienen panel de estadísticas.</div>;
-    return;
-  }
-  const cont = el('stats-content');
-  cont.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  const grid = el('stats-grid');
+  const chartWrap = el('stats-chart-wrap');
+  grid.innerHTML = '<div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div></div>';
+  chartWrap.style.display = 'none';
+  clearAlert('stats-alert');
+
   try {
-    const s = await apiFetch('/users/me/stats');
-    const ingresos  = parseFloat(s.ingresosTotales || 0).toFixed(2);
-    const ocupacion = parseFloat(s.porcentajeOcupacionMedia || 0).toFixed(1);
-    cont.innerHTML = `
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-label">Nº de eventos</div>
-          <div class="metric-value accent">${s.numeroEventos}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Entradas vendidas</div>
-          <div class="metric-value">${s.entradasVendidasTotales}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Ingresos totales</div>
-          <div class="metric-value accent">€${ingresos}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Ocupación media</div>
-          <div class="metric-value">${ocupacion}<span class="unit">%</span></div>
-        </div>
+    const stats = await apiFetch('/users/me/stats');
+
+    grid.innerHTML = `
+      <div class="metric-card accent">
+        <div class="mc-label">Eventos creados</div>
+        <div class="mc-value">${stats.numeroEventos}</div>
+        <div class="mc-unit">eventos en total</div>
       </div>
-      <p style="font-size:13px;color:var(--muted)">Calculado sobre todos tus eventos publicados y los tickets válidos vendidos.</p>
-    `;
-  } catch (e) {
-    cont.innerHTML = <div class="alert alert-err">${e.message}</div>;
+      <div class="metric-card">
+        <div class="mc-label">Entradas vendidas</div>
+        <div class="mc-value">${stats.entradasVendidasTotales}</div>
+        <div class="mc-unit">tickets en total</div>
+      </div>
+      <div class="metric-card accent">
+        <div class="mc-label">Ingresos totales</div>
+        <div class="mc-value">€${parseFloat(stats.ingresosTotales).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+        <div class="mc-unit">suma de entradas vendidas</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Ocupación media</div>
+        <div class="mc-value">${parseFloat(stats.porcentajeOcupacionMedia).toFixed(1)}<span style="font-size:1rem">%</span></div>
+        <div class="mc-unit">media sobre todos los eventos</div>
+      </div>`;
+
+    // Gráfico de barras con ocupación por evento
+    renderStatsChart();
+  } catch(e) {
+    grid.innerHTML = '';
+    showAlert('stats-alert', e.message);
   }
 }
+
+async function renderStatsChart() {
+  const chartWrap = el('stats-chart-wrap');
+  try {
+    const data = await apiFetch('/events?page=0&size=50');
+    const mine = (data.content || []).filter(e => e.organizadorId === currentUser.id);
+    if (!mine.length) return;
+
+    chartWrap.style.display = 'block';
+    const labels = mine.map(e => e.nombre.length > 18 ? e.nombre.slice(0,16) + '…' : e.nombre);
+    const valores = mine.map(e => e.aforoMaximo > 0
+      ? Math.round((e.entradasVendidas / e.aforoMaximo) * 100) : 0);
+
+    // Destruir instancia previa si existe
+    if (window._statsChart) { window._statsChart.destroy(); }
+
+    const ctx = el('stats-chart').getContext('2d');
+    window._statsChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: '% Ocupación',
+          data: valores,
+          backgroundColor: valores.map(v => v >= 80 ? 'rgba(255,90,90,0.7)' : v >= 50 ? 'rgba(91,143,255,0.7)' : 'rgba(200,255,0,0.7)'),
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { color: '#8a899a', callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          x: { ticks: { color: '#8a899a' }, grid: { display: false } }
+        }
+      }
+    });
+  } catch(e) { /* gráfico opcional, no bloquear */ }
+}
+
+/* ═══════ FAVORITOS (US-27) ═══════ */
+let favoritosSet = new Set(); // IDs de eventos favoritos del usuario
+
+async function syncFavoritos() {
+  if (!currentUser || currentUser.rol !== 'ASISTENTE') { favoritosSet = new Set(); return; }
+  try {
+    const favs = await apiFetch('/users/me/favorites');
+    favoritosSet = new Set((favs || []).map(e => e.id));
+  } catch(e) { favoritosSet = new Set(); }
+}
+
+async function toggleFavorito(eventoId, btn) {
+  if (!currentUser) return showPage('login');
+  const esFav = favoritosSet.has(eventoId);
+  btn.disabled = true;
+  try {
+    if (esFav) {
+      await apiFetch('/events/' + eventoId + '/favorite', { method: 'DELETE' });
+      favoritosSet.delete(eventoId);
+      btn.textContent = '♡';
+      btn.classList.remove('fav');
+      btn.title = 'Añadir a favoritos';
+    } else {
+      await apiFetch('/events/' + eventoId + '/favorite', { method: 'POST' });
+      favoritosSet.add(eventoId);
+      btn.textContent = '♥';
+      btn.classList.add('fav');
+      btn.title = 'Quitar de favoritos';
+    }
+  } catch(e) {
+    alert(e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadFavorites() {
+  if (!currentUser) return showPage('login');
+  const list = el('favorites-list');
+  list.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  try {
+    const favs = await apiFetch('/users/me/favorites');
+    favoritosSet = new Set((favs || []).map(e => e.id));
+    if (!favs || !favs.length) {
+      list.innerHTML = `<div class="empty"><div class="icon">♡</div><p>Aún no tienes eventos favoritos.<br>Pulsa el corazón en cualquier evento para guardarlo aquí.</p></div>`;
+      return;
+    }
+    list.innerHTML = `<div class="events-grid">${favs.map(e => eventCardHtml(e, false)).join('')}</div>`;
+  } catch(e) {
+    list.innerHTML = `<div class="alert alert-err">${e.message}</div>`;
+  }
+}
+
+/* ═══════ INIT ═══════ */
+loadAuth(); renderNav(); if (currentUser) syncFavoritos();
 </script>
 </body>
 </html>

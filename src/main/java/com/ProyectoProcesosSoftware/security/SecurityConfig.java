@@ -41,8 +41,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/tickets/my").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/tickets/**").hasRole("ASISTENTE")
                 .requestMatchers(HttpMethod.DELETE, "/api/tickets/**").hasRole("ASISTENTE")
+                // US-26: reseñas
                 .requestMatchers(HttpMethod.GET, "/api/events/*/reviews").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/events/*/reviews").hasRole("ASISTENTE")
+                // US-27: favoritos
+                .requestMatchers(HttpMethod.POST, "/api/events/*/favorite").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/events/*/favorite").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/users/me/favorites").authenticated()
+                // US-28: estadísticas — solo ORGANIZADOR
+                .requestMatchers(HttpMethod.GET, "/api/users/me/stats").hasRole("ORGANIZADOR")
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
