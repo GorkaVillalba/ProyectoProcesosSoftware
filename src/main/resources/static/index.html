@@ -237,6 +237,16 @@
   .star-picker .sp { font-size: 22px; color: var(--surface3); transition: color .1s; }
   .star-picker .sp.active { color: #ffb400; }
 
+  /* ─── FAVORITOS ─── */
+  .heart-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; line-height: 1; padding: 2px 4px;
+    color: var(--muted); transition: color .15s, transform .15s;
+    flex-shrink: 0;
+  }
+  .heart-btn:hover { transform: scale(1.2); }
+  .heart-btn.fav { color: #ff5b8f; }
+
   /* ─── RESPONSIVE ─── */
   @media (max-width: 600px) {
     .form-row { grid-template-columns: 1fr; }
@@ -387,6 +397,14 @@
       </div>
     </div>
     <div id="my-tickets-list"></div>
+  </div>
+
+  <!-- MY FAVORITES (asistente) -->
+  <div class="page" id="page-favorites">
+    <div class="page-header">
+      <h2>❤ Mis Favoritos</h2>
+    </div>
+    <div id="favorites-list"></div>
   </div>
 
   <!-- PROFILE -->
@@ -595,7 +613,7 @@ function renderNav() {
     na.innerHTML = `
       <span class="nav-user">${currentUser.email}</span>
       <button class="btn btn-sm" onclick="showPage('events')">Eventos</button>
-      ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button>` : `<button class="btn btn-sm" onclick="showPage('my-tickets')">Mis entradas</button>`}
+      ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button>` : `<button class="btn btn-sm" onclick="showPage('my-tickets')">Mis entradas</button><button class="btn btn-sm" onclick="showPage('favorites')">❤ Favoritos</button>`}
       <button class="btn btn-sm" onclick="showPage('profile')">Perfil</button>
       <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
     `;
@@ -616,6 +634,7 @@ function showPage(name) {
   if (name === 'events') loadEvents();
   if (name === 'my-events') loadMyEvents();
   if (name === 'my-tickets') loadMyTickets();
+  if (name === 'favorites') loadFavorites();
   if (name === 'profile') loadProfile();
 }
 
@@ -637,7 +656,7 @@ async function doLogin() {
   setLoading('login-btn', true);
   try {
     const data = await apiFetch('/auth/login', { method:'POST', body:{ email:el('login-email').value, password:el('login-pass').value } });
-    saveAuth(data); renderNav(); showPage('events');
+    saveAuth(data); renderNav(); await syncFavoritos(); showPage('events');
   } catch(e) { showAlert('login-alert', e.message); }
   finally { setLoading('login-btn', false); }
 }
@@ -682,6 +701,7 @@ async function loadEvents() {
     if (nombre) params.set('nombre', nombre);
     if (ubicacion) params.set('ubicacion', ubicacion);
     const data = await apiFetch('/events?' + params);
+    await syncFavoritos();
     renderEventCards(list, data.content || [], false);
   } catch(e) {
     list.innerHTML = `<div class="alert alert-err">${e.message}</div>`;
@@ -711,11 +731,18 @@ function renderEventCards(container, events, isOwner) {
 
 function eventCardHtml(e, isOwner) {
   const pct = e.aforoMaximo ? Math.round((e.entradasVendidas / e.aforoMaximo) * 100) : 0;
+  const isFav = favoritosSet.has(e.id);
+  const heartClass = isFav ? 'heart-btn fav' : 'heart-btn';
+  const heartTip = isFav ? 'Quitar de favoritos' : 'Añadir a favoritos';
+  const showHeart = currentUser && currentUser.rol === 'ASISTENTE';
   return `
     <div class="event-card" onclick="openDetail(${e.id})">
       <div class="ec-header">
         <div class="ec-title">${e.nombre}</div>
-        <div style="display:flex;gap:4px;align-items:center">${availBadge(e)} ${isOwner ? badgeHtml(e.estado) : ''}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          ${availBadge(e)} ${isOwner ? badgeHtml(e.estado) : ''}
+          ${showHeart ? `<button class="${heartClass}" title="${heartTip}" onclick="event.stopPropagation();toggleFavorito(${e.id},this)">${isFav ? '♥' : '♡'}</button>` : ''}
+        </div>
       </div>
       <div class="ec-meta">
         <span>📅 ${formatDate(e.fecha)} · ${e.hora ? e.hora.slice(0,5) : ''}</span>
@@ -1165,8 +1192,61 @@ async function doSubmitReview(eventoId) {
   }
 }
 
+/* ═══════ FAVORITOS (US-27) ═══════ */
+let favoritosSet = new Set(); // IDs de eventos favoritos del usuario
+
+async function syncFavoritos() {
+  if (!currentUser || currentUser.rol !== 'ASISTENTE') { favoritosSet = new Set(); return; }
+  try {
+    const favs = await apiFetch('/users/me/favorites');
+    favoritosSet = new Set((favs || []).map(e => e.id));
+  } catch(e) { favoritosSet = new Set(); }
+}
+
+async function toggleFavorito(eventoId, btn) {
+  if (!currentUser) return showPage('login');
+  const esFav = favoritosSet.has(eventoId);
+  btn.disabled = true;
+  try {
+    if (esFav) {
+      await apiFetch('/events/' + eventoId + '/favorite', { method: 'DELETE' });
+      favoritosSet.delete(eventoId);
+      btn.textContent = '♡';
+      btn.classList.remove('fav');
+      btn.title = 'Añadir a favoritos';
+    } else {
+      await apiFetch('/events/' + eventoId + '/favorite', { method: 'POST' });
+      favoritosSet.add(eventoId);
+      btn.textContent = '♥';
+      btn.classList.add('fav');
+      btn.title = 'Quitar de favoritos';
+    }
+  } catch(e) {
+    alert(e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadFavorites() {
+  if (!currentUser) return showPage('login');
+  const list = el('favorites-list');
+  list.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  try {
+    const favs = await apiFetch('/users/me/favorites');
+    favoritosSet = new Set((favs || []).map(e => e.id));
+    if (!favs || !favs.length) {
+      list.innerHTML = `<div class="empty"><div class="icon">♡</div><p>Aún no tienes eventos favoritos.<br>Pulsa el corazón en cualquier evento para guardarlo aquí.</p></div>`;
+      return;
+    }
+    list.innerHTML = `<div class="events-grid">${favs.map(e => eventCardHtml(e, false)).join('')}</div>`;
+  } catch(e) {
+    list.innerHTML = `<div class="alert alert-err">${e.message}</div>`;
+  }
+}
+
 /* ═══════ INIT ═══════ */
-loadAuth(); renderNav();
+loadAuth(); renderNav(); if (currentUser) syncFavoritos();
 </script>
 </body>
 </html>
