@@ -25,7 +25,8 @@ public class FavoritoController {
     @Operation(
         summary = "Añadir evento a favoritos",
         description = "Marca un evento como favorito para el usuario autenticado. Idempotente: no falla si ya estaba marcado."
-    )
+    ) 
+    
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Evento añadido a favoritos"),
         @ApiResponse(responseCode = "401", description = "No autenticado"),
