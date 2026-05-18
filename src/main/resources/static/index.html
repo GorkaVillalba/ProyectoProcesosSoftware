@@ -244,6 +244,38 @@
     nav { padding: 0 1rem; }
     .app-container { padding: 1rem; }
   }
+
+  /* ─── STATS (US-28) ─── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 2rem;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 1.25rem;
+    text-align: left;
+    transition: border-color .15s, transform .15s;
+  }
+  .metric-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .metric-label {
+    font-size: 12px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .5px;
+    margin-bottom: 0.5rem;
+  }
+  .metric-value {
+    font-family: var(--font-head);
+    font-size: 1.9rem; font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .metric-value .unit {
+    font-size: 1rem; color: var(--muted); font-weight: 500; margin-left: 4px;
+  }
+  .metric-value.accent { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -413,6 +445,16 @@
         <button class="btn btn-sm" onclick="startEditProfile()">Editar perfil</button>
         <button class="btn btn-danger btn-sm" onclick="doDeleteAccount()">Eliminar cuenta</button>
       </div>
+    </div>
+  </div>
+
+ <!-- STATS (US-28, solo ORGANIZADOR) -->
+  <div class="page" id="page-stats">
+    <div class="page-header">
+      <h2>Mis estadísticas</h2>
+    </div>
+    <div id="stats-content">
+      <div class="loader-wrap"><div class="spinner"></div></div>
     </div>
   </div>
 
@@ -595,7 +637,8 @@ function renderNav() {
     na.innerHTML = `
       <span class="nav-user">${currentUser.email}</span>
       <button class="btn btn-sm" onclick="showPage('events')">Eventos</button>
-      ${isOrg ? `<button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button>` : `<button class="btn btn-sm" onclick="showPage('my-tickets')">Mis entradas</button>`}
+      ${isOrg ? <button class="btn btn-sm" onclick="showPage('my-events')">Mis eventos</button> : <button class="btn btn-sm" onclick="showPage('my-tickets')">Mis entradas</button>}
+      ${isOrg ? <button class="btn btn-sm" onclick="showPage('stats')">Estadísticas</button> : ''}
       <button class="btn btn-sm" onclick="showPage('profile')">Perfil</button>
       <button class="btn btn-danger btn-sm" onclick="logout()">Salir</button>
     `;
@@ -617,6 +660,7 @@ function showPage(name) {
   if (name === 'my-events') loadMyEvents();
   if (name === 'my-tickets') loadMyTickets();
   if (name === 'profile') loadProfile();
+  if (name === 'stats') loadStats();
 }
 
 /* ═══════ API CALLS ═══════ */
@@ -1167,6 +1211,46 @@ async function doSubmitReview(eventoId) {
 
 /* ═══════ INIT ═══════ */
 loadAuth(); renderNav();
+
+
+/* ═══════ STATS (US-28) ═══════ */
+async function loadStats() {
+  if (!currentUser) return showPage('login');
+  if (currentUser.rol !== 'ORGANIZADOR') {
+    el('stats-content').innerHTML = <div class="alert alert-err">Solo los organizadores tienen panel de estadísticas.</div>;
+    return;
+  }
+  const cont = el('stats-content');
+  cont.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  try {
+    const s = await apiFetch('/users/me/stats');
+    const ingresos  = parseFloat(s.ingresosTotales || 0).toFixed(2);
+    const ocupacion = parseFloat(s.porcentajeOcupacionMedia || 0).toFixed(1);
+    cont.innerHTML = `
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Nº de eventos</div>
+          <div class="metric-value accent">${s.numeroEventos}</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Entradas vendidas</div>
+          <div class="metric-value">${s.entradasVendidasTotales}</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Ingresos totales</div>
+          <div class="metric-value accent">€${ingresos}</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Ocupación media</div>
+          <div class="metric-value">${ocupacion}<span class="unit">%</span></div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--muted)">Calculado sobre todos tus eventos publicados y los tickets válidos vendidos.</p>
+    `;
+  } catch (e) {
+    cont.innerHTML = <div class="alert alert-err">${e.message}</div>;
+  }
+}
 </script>
 </body>
 </html>
