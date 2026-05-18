@@ -19,4 +19,9 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
             @Param("nombre") String nombre,
             @Param("ubicacion") String ubicacion,
             Pageable pageable);
+            
+// US-28 / T-28.2
+    java.util.List<com.ProyectoProcesosSoftware.model.Evento> findByOrganizadorId(Long organizadorId);
+
 }
+
