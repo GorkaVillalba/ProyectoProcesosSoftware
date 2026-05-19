@@ -26,6 +26,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # Descomenta para arrancar con datos de demo precargados:
+      # SPRING_PROFILES_ACTIVE: demo
       DB_USERNAME: root
       DB_PASSWORD: root
       JWT_SECRET: eventpass-prod-secret-key-que-debe-tener-al-menos-256-bits-segura-1234567890
