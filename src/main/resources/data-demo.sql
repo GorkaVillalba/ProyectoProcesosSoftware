@@ -1,4 +1,4 @@
-INSERT INTO usuarios (id, nombre, email, password, rol) VALUES
+NSERT INTO usuarios (id, nombre, email, password, rol) VALUES
   (1001, 'Olivia Organizadora', 'org@demo.com',   '$2a$10$9.2Z16KkHePpsbHUmyMX.ez.hBGkuNGrs5LDABbZGa5UQtKAcEaQq', 'ORGANIZADOR'),
   (1002, 'Alice Asistente',     'alice@demo.com',  '$2a$10$9.2Z16KkHePpsbHUmyMX.ez.hBGkuNGrs5LDABbZGa5UQtKAcEaQq', 'ASISTENTE'),
   (1003, 'Bob Asistente',       'bob@demo.com',    '$2a$10$9.2Z16KkHePpsbHUmyMX.ez.hBGkuNGrs5LDABbZGa5UQtKAcEaQq', 'ASISTENTE'),
@@ -16,3 +16,16 @@ INSERT INTO tickets (id, uuid, evento_id, asistente_id, estado, precio_final, fe
   (3002, '22222222-2222-2222-2222-222222222222', 2002, 1002, 'VALIDO',    80.00, CURRENT_TIMESTAMP),
   (3003, '33333333-3333-3333-3333-333333333333', 2003, 1003, 'VALIDO',    45.00, CURRENT_TIMESTAMP),
   (3004, '44444444-4444-4444-4444-444444444444', 2002, 1004, 'CANCELADO', 80.00, CURRENT_TIMESTAMP);
+
+INSERT INTO resenas (id, evento_id, asistente_id, puntuacion, comentario, fecha_creacion) VALUES
+  (4001, 2001, 1002, 5, 'Concierto espectacular, ambiente increible.',            CURRENT_TIMESTAMP),
+  (4002, 2002, 1002, 4, 'Muy buen festival aunque algo concurrido.',              CURRENT_TIMESTAMP),
+  (4003, 2003, 1003, 3, 'Stand-up entretenido, esperaba un poco mas de chistes.', CURRENT_TIMESTAMP);
+
+INSERT INTO favoritos (id, usuario_id, evento_id, fecha_alta) VALUES
+  (5001, 1002, 2001, CURRENT_TIMESTAMP),
+  (5002, 1002, 2003, CURRENT_TIMESTAMP),
+  (5003, 1003, 2002, CURRENT_TIMESTAMP),
+  (5004, 1003, 2004, CURRENT_TIMESTAMP),
+  (5005, 1004, 2001, CURRENT_TIMESTAMP),
+  (5006, 1004, 2002, CURRENT_TIMESTAMP);
