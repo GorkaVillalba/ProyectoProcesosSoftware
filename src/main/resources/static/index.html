@@ -273,8 +273,27 @@
   @media (max-width: 600px) {
     .form-row { grid-template-columns: 1fr; }
     .detail-grid { grid-template-columns: 1fr; }
-    nav { padding: 0 1rem; }
-    .app-container { padding: 1rem; }
+    nav { padding: 0 0.75rem; height: 56px; gap: 6px; }
+    .logo { font-size: 1.05rem; }
+    .nav-user { display: none; }
+    .nav-actions { gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .nav-actions .btn { padding: 5px 9px; font-size: 11px; }
+    .app-container { padding: 1rem 0.75rem; }
+    .hero { padding: 2.5rem 0.5rem 2rem; }
+    .auth-wrap { margin: 1.5rem auto; }
+    .card { padding: 1.25rem; }
+    .page-header { gap: 0.5rem; }
+    .page-header h2 { font-size: 1.3rem; }
+    .search-bar { width: 100%; }
+    .search-bar input { width: 100%; flex: 1; min-width: 0; }
+    .modal { padding: 1.25rem; max-height: 92vh; }
+    .modal-header h3 { font-size: 1.1rem; }
+    .events-grid { grid-template-columns: 1fr; }
+    .ticket-card { flex-direction: column; align-items: stretch; }
+    .ticket-uuid { align-self: center; }
+    .stats-grid, .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .metric-card { padding: 1rem; }
+    .metric-card .mc-value, .metric-value { font-size: 1.5rem; }
   }
 
   /* ─── STATS (US-28) ─── */
@@ -412,7 +431,7 @@
           <input type="email" id="forgot-email" placeholder="tu@email.com">
           <span class="field-err" id="forgot-email-err"></span>
         </div>
-        <button class="btn btn-accent" style="width:100%;margin-top:0.5rem" onclick="doForgot()">Enviar instrucciones</button>
+        <button class="btn btn-accent" style="width:100%;margin-top:0.5rem" onclick="doForgot()" id="forgot-btn">Enviar instrucciones</button>
         <p class="form-footer"><a onclick="showPage('login')">← Volver al login</a></p>
       </div>
     </div>
@@ -502,13 +521,13 @@
         <div class="form-group"><label>Nombre</label><input type="text" id="edit-nombre"></div>
         <div class="form-group"><label>Email</label><input type="email" id="edit-email"></div>
         <div style="display:flex;gap:8px;margin-top:0.5rem">
-          <button class="btn btn-accent btn-sm" onclick="doEditProfile()">Guardar</button>
+          <button class="btn btn-accent btn-sm" onclick="doEditProfile()" id="profile-save-btn">Guardar</button>
           <button class="btn btn-sm" onclick="cancelEditProfile()">Cancelar</button>
         </div>
       </div>
       <div id="profile-actions" style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="startEditProfile()">Editar perfil</button>
-        <button class="btn btn-danger btn-sm" onclick="doDeleteAccount()">Eliminar cuenta</button>
+        <button class="btn btn-danger btn-sm" onclick="doDeleteAccount()" id="profile-delete-btn">Eliminar cuenta</button>
       </div>
     </div>
   </div>
@@ -616,7 +635,7 @@
     <div id="reset-alert"></div>
     <div class="form-group"><label>Token de recuperación</label><input type="text" id="reset-token" placeholder="Pega el token aquí"><span class="field-err" id="reset-token-err"></span></div>
     <div class="form-group"><label>Nueva contraseña</label><input type="password" id="reset-pass" placeholder="Mínimo 6 caracteres"><span class="field-err" id="reset-pass-err"></span></div>
-    <button class="btn btn-accent" style="width:100%" onclick="doResetPassword()">Cambiar contraseña</button>
+    <button class="btn btn-accent" style="width:100%" onclick="doResetPassword()" id="reset-btn">Cambiar contraseña</button>
   </div>
 </div>
 
@@ -799,6 +818,7 @@ async function doRegister() {
 
 async function doForgot() {
   clearAlert('forgot-alert'); clearFieldErrors(FORGOT_FIELDS);
+  setLoading('forgot-btn', true);
   try {
     const data = await apiFetch('/auth/forgot-password', { method:'POST', body:{ email:el('forgot-email').value } });
     showAlert('forgot-alert', data.message || 'Revisa tu email.', 'ok');
@@ -807,18 +827,21 @@ async function doForgot() {
     if (e.errors) showFieldErrors(FORGOT_FIELDS, e.errors);
     showAlert('forgot-alert', e.message);
   }
+  finally { setLoading('forgot-btn', false); }
 }
 
 async function doResetPassword() {
   clearAlert('reset-alert'); clearFieldErrors(RESET_FIELDS);
+  setLoading('reset-btn', true);
   try {
     const data = await apiFetch('/auth/reset-password', { method:'POST', body:{ token:el('reset-token').value, nuevaPassword:el('reset-pass').value } });
     showAlert('reset-alert', data.message, 'ok');
     setTimeout(() => { closeResetModal(); showPage('login'); }, 1500);
-  } catch(e) {
+    } catch(e) {
     if (e.errors) showFieldErrors(RESET_FIELDS, e.errors);
     showAlert('reset-alert', e.message);
   }
+  finally { setLoading('reset-btn', false); }
 }
 
 /* ═══════ EVENTS ═══════ */
@@ -899,7 +922,8 @@ function debounceSearch() {
 async function openDetail(id) {
   currentDetailEventoId = id;
   el('detail-overlay').classList.remove('hidden');
-  el('dm-title').textContent = 'Cargando...';
+  el('dm-title').innerHTML = '<span class="spinner"></span>';
+  el('dm-status').innerHTML = '';
   el('dm-actions').innerHTML = '';
   el('dm-reviews-section').style.display = 'none';
   try {
@@ -1047,6 +1071,9 @@ function closeEventFormModal() { el('event-form-overlay').classList.add('hidden'
 /* ═══════ PROFILE ═══════ */
 async function loadProfile() {
   if (!currentUser) return showPage('login');
+  el('profile-name').innerHTML = '<span class="spinner"></span>';
+  el('profile-role').textContent = '';
+  ['pf-email','pf-rol','pf-fecha'].forEach(id => el(id).textContent = '');
   try {
     const u = await apiFetch('/users/' + currentUser.id);
     el('profile-avatar').textContent = initials(u.nombre);
@@ -1059,7 +1086,10 @@ async function loadProfile() {
     el('edit-nombre').value = u.nombre;
     el('edit-email').value = u.email;
     clearAlert('profile-alert');
-  } catch(e) { showAlert('profile-alert', e.message); }
+  } catch(e) {
+    el('profile-name').textContent = '';
+    showAlert('profile-alert', e.message);
+  }
 }
 
 function startEditProfile() {
@@ -1073,6 +1103,7 @@ function cancelEditProfile() {
 
 async function doEditProfile() {
   clearAlert('profile-alert');
+  setLoading('profile-save-btn', true);
   try {
     const u = await apiFetch('/users/' + currentUser.id, { method:'PUT', body:{ nombre:el('edit-nombre').value, email:el('edit-email').value } });
     currentUser.email = u.email;
@@ -1080,14 +1111,19 @@ async function doEditProfile() {
     renderNav(); cancelEditProfile(); loadProfile();
     showAlert('profile-alert', 'Perfil actualizado correctamente', 'ok');
   } catch(e) { showAlert('profile-alert', e.message); }
+  finally { setLoading('profile-save-btn', false); }
 }
 
 async function doDeleteAccount() {
   if (!confirm('¿Seguro que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) return;
+  setLoading('profile-delete-btn', true);
   try {
     await apiFetch('/users/' + currentUser.id, { method:'DELETE' });
     logout();
-  } catch(e) { showAlert('profile-alert', e.message); }
+  } catch(e) {
+    showAlert('profile-alert', e.message);
+    setLoading('profile-delete-btn', false);
+  }
 }
 
 /* ═══════ COMPRAR ENTRADA ═══════ */
@@ -1178,7 +1214,7 @@ function filterAndSortTickets() {
           <span>📆 Comprada: ${formatDate(t.fechaCompra)}</span>
         </div>
         ${esValida
-          ? `<button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="doCancelarEntrada(${t.id})">Cancelar entrada</button>`
+          ? `<button class="btn btn-danger btn-sm" style="margin-top:10px" id="cancel-ticket-${t.id}" onclick="doCancelarEntrada(${t.id})">Cancelar entrada</button>`
           : `<button class="btn btn-sm" style="margin-top:10px" disabled>Entrada cancelada</button>`}
       </div>
       <div class="ticket-uuid"><img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(t.uuid)}" alt="QR" style="display:block;margin:0 auto 4px"><span style="font-size:11px;cursor:pointer" onclick="event.stopPropagation();navigator.clipboard.writeText('${t.uuid}').then(()=>{this.textContent='¡Copiado!';setTimeout(()=>this.textContent='${t.uuid.slice(0,8)}...',1500)})">${t.uuid.slice(0,8)}...</span></div>
@@ -1189,11 +1225,13 @@ function filterAndSortTickets() {
 /* ═══════ CANCELAR ENTRADA (T-14) ═══════ */
 async function doCancelarEntrada(ticketId) {
   if (!confirm('¿Estás seguro de que quieres cancelar esta entrada?\n\nSolo se puede cancelar si faltan más de 48h para el evento.')) return;
+  setLoading('cancel-ticket-' + ticketId, true);
   try {
     await apiFetch('/tickets/' + ticketId, { method: 'DELETE' });
     toast('Entrada cancelada', 'ok');
     await loadMyTickets();
   } catch (e) {
+    setLoading('cancel-ticket-' + ticketId, false);
     toast(e.message || 'No se ha podido cancelar la entrada.');
   }
 }
