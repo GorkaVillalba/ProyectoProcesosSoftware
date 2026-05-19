@@ -175,6 +175,17 @@
   .alert-err { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(255,91,91,0.2); }
   .alert-ok  { background: var(--success-dim); color: var(--success); border: 1px solid rgba(61,255,160,0.2); }
 
+  /* ─── FIELD ERRORS ─── */
+  .field-err { display: block; font-size: 12px; color: var(--danger); margin-top: 4px; }
+  .form-group input.input-err, .form-group select.input-err { border-color: rgba(255,91,91,0.5); }
+
+  /* ─── TOAST ─── */
+  #toast-wrap { position: fixed; top: 76px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+  .toast { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--text); box-shadow: 0 6px 24px rgba(0,0,0,0.4); min-width: 220px; max-width: 360px; pointer-events: auto; animation: toast-in .2s ease-out; }
+  .toast.t-err { background: var(--danger-dim); border-color: rgba(255,91,91,0.3); color: var(--danger); }
+  .toast.t-ok  { background: var(--success-dim); border-color: rgba(61,255,160,0.3); color: var(--success); }
+  @keyframes toast-in { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
   /* ─── EMPTY ─── */
   .empty { text-align: center; padding: 4rem 2rem; color: var(--muted); }
   .empty .icon { font-size: 2.5rem; margin-bottom: 1rem; }
@@ -321,6 +332,8 @@
 </head>
 <body>
 
+<div id="toast-wrap"></div>
+
 <!-- ══════════════ NAV ══════════════ -->
 <nav>
   <div class="logo">Event<span>Pass</span></div>
@@ -356,10 +369,12 @@
         <div class="form-group">
           <label>Email</label>
           <input type="email" id="login-email" placeholder="tu@email.com">
+          <span class="field-err" id="login-email-err"></span>
         </div>
         <div class="form-group">
           <label>Contraseña</label>
           <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+          <span class="field-err" id="login-pass-err"></span>
         </div>
         <button class="btn btn-accent" style="width:100%;margin-top:0.5rem" onclick="doLogin()" id="login-btn">Iniciar sesión</button>
         <p class="form-footer">¿No tienes cuenta? <a onclick="showPage('register')">Regístrate</a></p>
@@ -378,14 +393,17 @@
         <div class="form-group">
           <label>Nombre completo</label>
           <input type="text" id="reg-name" placeholder="Tu nombre">
+          <span class="field-err" id="reg-name-err"></span>
         </div>
         <div class="form-group">
           <label>Email</label>
           <input type="email" id="reg-email" placeholder="tu@email.com">
+          <span class="field-err" id="reg-email-err"></span>
         </div>
         <div class="form-group">
           <label>Contraseña</label>
           <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres">
+          <span class="field-err" id="reg-pass-err"></span>
         </div>
         <div class="form-group">
           <label>Rol</label>
@@ -393,6 +411,7 @@
             <option value="ASISTENTE">Asistente — comprar entradas</option>
             <option value="ORGANIZADOR">Organizador — crear eventos</option>
           </select>
+          <span class="field-err" id="reg-rol-err"></span>
         </div>
         <button class="btn btn-accent" style="width:100%;margin-top:0.5rem" onclick="doRegister()" id="reg-btn">Crear cuenta</button>
         <p class="form-footer">¿Ya tienes cuenta? <a onclick="showPage('login')">Inicia sesión</a></p>
@@ -410,6 +429,7 @@
         <div class="form-group">
           <label>Email</label>
           <input type="email" id="forgot-email" placeholder="tu@email.com">
+          <span class="field-err" id="forgot-email-err"></span>
         </div>
         <button class="btn btn-accent" style="width:100%;margin-top:0.5rem" onclick="doForgot()" id="forgot-btn">Enviar instrucciones</button>
         <p class="form-footer"><a onclick="showPage('login')">← Volver al login</a></p>
@@ -509,16 +529,6 @@
         <button class="btn btn-sm" onclick="startEditProfile()">Editar perfil</button>
         <button class="btn btn-danger btn-sm" onclick="doDeleteAccount()" id="profile-delete-btn">Eliminar cuenta</button>
       </div>
-    </div>
-  </div>
-
- <!-- STATS (US-28, solo ORGANIZADOR) -->
-  <div class="page" id="page-stats">
-    <div class="page-header">
-      <h2>Mis estadísticas</h2>
-    </div>
-    <div id="stats-content">
-      <div class="loader-wrap"><div class="spinner"></div></div>
     </div>
   </div>
 
@@ -623,8 +633,8 @@
       <button class="close-btn" onclick="closeResetModal()">×</button>
     </div>
     <div id="reset-alert"></div>
-    <div class="form-group"><label>Token de recuperación</label><input type="text" id="reset-token" placeholder="Pega el token aquí"></div>
-    <div class="form-group"><label>Nueva contraseña</label><input type="password" id="reset-pass" placeholder="Mínimo 6 caracteres"></div>
+    <div class="form-group"><label>Token de recuperación</label><input type="text" id="reset-token" placeholder="Pega el token aquí"><span class="field-err" id="reset-token-err"></span></div>
+    <div class="form-group"><label>Nueva contraseña</label><input type="password" id="reset-pass" placeholder="Mínimo 6 caracteres"><span class="field-err" id="reset-pass-err"></span></div>
     <button class="btn btn-accent" style="width:100%" onclick="doResetPassword()" id="reset-btn">Cambiar contraseña</button>
   </div>
 </div>
@@ -639,6 +649,35 @@ function showAlert(id, msg, type='err') {
   el(id).innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
 }
 function clearAlert(id) { el(id).innerHTML = ''; }
+function toast(msg, type='err', ms=3500) {
+  const wrap = el('toast-wrap');
+  if (!wrap) return;
+  const t = document.createElement('div');
+  t.className = 'toast t-' + type;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.transition = 'opacity .25s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 250); }, ms);
+}
+function showFieldErrors(fieldMap, errors) {
+  Object.entries(fieldMap).forEach(([apiField, inputId]) => {
+    const slot = el(inputId + '-err');
+    const input = el(inputId);
+    if (slot) slot.textContent = '';
+    if (input) input.classList.remove('input-err');
+    if (errors && errors[apiField]) {
+      if (slot) slot.textContent = errors[apiField];
+      if (input) input.classList.add('input-err');
+    }
+  });
+}
+function clearFieldErrors(fieldMap) {
+  Object.values(fieldMap).forEach(inputId => {
+    const slot = el(inputId + '-err');
+    const input = el(inputId);
+    if (slot) slot.textContent = '';
+    if (input) input.classList.remove('input-err');
+  });
+}
 function setLoading(btnId, loading) {
   const b = el(btnId);
   if (!b) return;
@@ -725,7 +764,6 @@ function showPage(name) {
   if (name === 'stats') loadStats();
   if (name === 'favorites') loadFavorites();
   if (name === 'profile') loadProfile();
-  if (name === 'stats') loadStats();
 }
 
 /* ═══════ API CALLS ═══════ */
@@ -736,51 +774,73 @@ async function apiFetch(path, opts={}) {
   });
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(data.message || `Error ${res.status}`);
+    err.status = res.status;
+    err.errors = data.errors || null;
+    throw err;
+  }
   return data;
 }
 
 /* ═══════ AUTH ═══════ */
+const LOGIN_FIELDS  = { email: 'login-email', password: 'login-pass' };
+const REG_FIELDS    = { nombre: 'reg-name', email: 'reg-email', password: 'reg-pass', rol: 'reg-rol' };
+const FORGOT_FIELDS = { email: 'forgot-email' };
+const RESET_FIELDS  = { token: 'reset-token', nuevaPassword: 'reset-pass' };
+
 async function doLogin() {
-  clearAlert('login-alert');
+  clearAlert('login-alert'); clearFieldErrors(LOGIN_FIELDS);
   setLoading('login-btn', true);
   try {
     const data = await apiFetch('/auth/login', { method:'POST', body:{ email:el('login-email').value, password:el('login-pass').value } });
     saveAuth(data); renderNav(); await syncFavoritos(); showPage('events');
-  } catch(e) { showAlert('login-alert', e.message); }
+  } catch(e) {
+    if (e.errors) showFieldErrors(LOGIN_FIELDS, e.errors);
+    showAlert('login-alert', e.message);
+  }
   finally { setLoading('login-btn', false); }
 }
 
 async function doRegister() {
-  clearAlert('reg-alert');
+  clearAlert('reg-alert'); clearFieldErrors(REG_FIELDS);
   setLoading('reg-btn', true);
   try {
     await apiFetch('/users', { method:'POST', body:{ nombre:el('reg-name').value, email:el('reg-email').value, password:el('reg-pass').value, rol:el('reg-rol').value } });
     showAlert('reg-alert', 'Cuenta creada. Ahora inicia sesión.', 'ok');
     setTimeout(() => showPage('login'), 1500);
-  } catch(e) { showAlert('reg-alert', e.message); }
+  } catch(e) {
+    if (e.errors) showFieldErrors(REG_FIELDS, e.errors);
+    showAlert('reg-alert', e.message);
+  }
   finally { setLoading('reg-btn', false); }
 }
 
 async function doForgot() {
-  clearAlert('forgot-alert');
+  clearAlert('forgot-alert'); clearFieldErrors(FORGOT_FIELDS);
   setLoading('forgot-btn', true);
   try {
     const data = await apiFetch('/auth/forgot-password', { method:'POST', body:{ email:el('forgot-email').value } });
     showAlert('forgot-alert', data.message || 'Revisa tu email.', 'ok');
     setTimeout(() => { el('reset-overlay').classList.remove('hidden'); }, 1200);
-  } catch(e) { showAlert('forgot-alert', e.message); }
+  } catch(e) {
+    if (e.errors) showFieldErrors(FORGOT_FIELDS, e.errors);
+    showAlert('forgot-alert', e.message);
+  }
   finally { setLoading('forgot-btn', false); }
 }
 
 async function doResetPassword() {
-  clearAlert('reset-alert');
+  clearAlert('reset-alert'); clearFieldErrors(RESET_FIELDS);
   setLoading('reset-btn', true);
   try {
     const data = await apiFetch('/auth/reset-password', { method:'POST', body:{ token:el('reset-token').value, nuevaPassword:el('reset-pass').value } });
     showAlert('reset-alert', data.message, 'ok');
     setTimeout(() => { closeResetModal(); showPage('login'); }, 1500);
-  } catch(e) { showAlert('reset-alert', e.message); }
+    } catch(e) {
+    if (e.errors) showFieldErrors(RESET_FIELDS, e.errors);
+    showAlert('reset-alert', e.message);
+  }
   finally { setLoading('reset-btn', false); }
 }
 
@@ -899,11 +959,8 @@ async function openDetail(id) {
                   && currentUser.rol === 'ORGANIZADOR'
                   && currentUser.id === e.organizadorId;
     if (esDueño) {
-      actions += <button class="btn btn-sm" onclick="openEditEvent(${e.id})">Editar</button>;
-      // US-22 / T-22.3: el botón "Eliminar" se ofrece siempre. Si el evento
-      // tiene tickets vendidos, el backend responde 409 y mostramos el mensaje
-      // claro al usuario (gestionado en doDeleteEvent).
-      actions += <button class="btn btn-danger btn-sm" onclick="doDeleteEvent(${e.id})">Eliminar</button>;
+      actions += `<button class="btn btn-sm" onclick="openEditEvent(${e.id})">Editar</button>`;
+      actions += `<button class="btn btn-danger btn-sm" onclick="doDeleteEvent(${e.id})">Eliminar</button>`;
     } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'PUBLICADO' && e.plazasDisponibles > 0) {
       actions += `<div id="dm-purchase-area"><button class="btn btn-accent" id="buy-btn" onclick="doComprarEntrada(${e.id})">Comprar Entrada — €${parseFloat(e.precioActual || e.precioBase).toFixed(2)}</button></div>`;
     } else if (currentUser && currentUser.rol === 'ASISTENTE' && e.estado === 'AGOTADO') {
@@ -918,8 +975,9 @@ async function openDetail(id) {
     el('dm-reviews-section').style.display = 'block';
     loadReviews(id, 0);
     loadReviewForm(id);
-  } catch(e) {
-    el('dm-title').textContent = 'Error al cargar';
+  } catch(err) {
+    el('dm-title').textContent = 'No se pudo cargar el evento';
+    el('dm-status').innerHTML = `<div class="alert alert-err">${err.message}</div>`;
   }
 }
 
@@ -1170,10 +1228,11 @@ async function doCancelarEntrada(ticketId) {
   setLoading('cancel-ticket-' + ticketId, true);
   try {
     await apiFetch('/tickets/' + ticketId, { method: 'DELETE' });
+    toast('Entrada cancelada', 'ok');
     await loadMyTickets();
   } catch (e) {
     setLoading('cancel-ticket-' + ticketId, false);
-    alert(e.message || 'No se ha podido cancelar la entrada.');
+    toast(e.message || 'No se ha podido cancelar la entrada.');
   }
 }
 
@@ -1433,7 +1492,7 @@ async function toggleFavorito(eventoId, btn) {
       btn.title = 'Quitar de favoritos';
     }
   } catch(e) {
-    alert(e.message);
+    toast(e.message || 'No se pudo actualizar el favorito');
   } finally {
     btn.disabled = false;
   }
