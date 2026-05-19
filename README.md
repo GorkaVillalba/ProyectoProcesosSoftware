@@ -158,6 +158,10 @@ y se publica en GitHub Pages:
 
 El workflow encargado es `.github/workflows/docs.yml`.
 
+## Documentación API
+Enlace directo a Swagger UI:
+
+🔗http://localhost:8080/swagger-ui/index.html
 ## Equipo SCRUM
 | Rol | Persona |
 |-----|---------|
