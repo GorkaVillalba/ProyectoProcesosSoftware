@@ -149,6 +149,18 @@ cubriendo todos los tramos de precio dinámico y 4 tickets (3 válidos + 1 cance
 | PUT | /api/events/{id} | Editar evento |
 | DELETE | /api/events/{id} | Eliminar evento |
 
+## Capturas del flujo organizador
+
+Capturas del recorrido típico de un organizador (mis eventos → crear → editar → intento de eliminación bloqueado).
+Archivos en [`docs/screenshots/organizador/`](docs/screenshots/organizador/).
+
+| Pantalla              | Imagen                                                              |
+|-----------------------|---------------------------------------------------------------------|
+| Mis eventos           | ![Mis eventos](docs/screenshots/organizador/01-mis-eventos.png)     |
+| Crear evento          | ![Crear](docs/screenshots/organizador/02-crear-evento.png)          |
+| Editar evento         | ![Editar](docs/screenshots/organizador/03-editar-evento.png)        |
+| Eliminación bloqueada | ![Bloqueado](docs/screenshots/organizador/04-eliminar-bloqueado.png) |
+
 ## Capturas del flujo asistente
 
 Capturas del recorrido típico de un asistente (registro → login → exploración → compra → mis entradas).
