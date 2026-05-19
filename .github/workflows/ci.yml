@@ -50,6 +50,52 @@ jobs:
       run: ./gradlew jacocoTestCoverageVerification
       continue-on-error: true
 
+    # ─────────────────────────────────────────────────────────────────
+    # T-29.9: validar que la Javadoc se genera sin errores en cada PR.
+    #
+    # Por defecto, la tarea `javadoc` definida en build.gradle tiene
+    # `Xdoclint:none` y `failOnError = false`, lo que silencia tanto los
+    # avisos de calidad (parámetros mal nombrados, @link rotos, HTML
+    # malformado, etc.) como los fallos del propio generador.
+    #
+    # Para que el step cumpla su propósito en CI, aquí inyectamos un
+    # init-script con `--init-script` que reactiva la validación estricta
+    # SOLO durante esta ejecución, sin tocar el build.gradle del
+    # repositorio. Así los desarrolladores conservan el comportamiento
+    # permisivo en local y la CI bloquea los PRs con Javadoc rota.
+    #
+    # Se excluye el grupo `missing` para no fallar por métodos sin
+    # documentar (eso lo cubrirá `jacocoTestCoverageVerification` con su
+    # umbral si en el futuro se mide cobertura de Javadoc); aquí solo
+    # buscamos errores estructurales.
+    # ─────────────────────────────────────────────────────────────────
+    - name: Validar Javadoc (T-29.9)
+      if: always()
+      run: |
+        cat > /tmp/javadoc-strict.gradle <<'GRADLE'
+        allprojects {
+            afterEvaluate {
+                tasks.withType(Javadoc).configureEach {
+                    failOnError = true
+                    options.encoding = 'UTF-8'
+                    options.docEncoding = 'UTF-8'
+                    options.charSet = 'UTF-8'
+                    // Reemplaza el Xdoclint:none del build.gradle por
+                    // validación estricta excepto avisos de "missing".
+                    options.addStringOption('Xdoclint:all,-missing', '-quiet')
+                }
+            }
+        }
+        GRADLE
+        ./gradlew javadoc --init-script /tmp/javadoc-strict.gradle --no-daemon
+
+    - name: Publicar Javadoc generada
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: javadoc
+        path: build/docs/javadoc/
+
     - name: Publicar resultados de tests
       if: always()
       uses: actions/upload-artifact@v4
@@ -68,5 +114,3 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: ./gradlew sonar --info
-
-      
