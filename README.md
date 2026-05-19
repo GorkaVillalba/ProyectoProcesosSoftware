@@ -161,6 +161,18 @@ Archivos en [`docs/screenshots/organizador/`](docs/screenshots/organizador/).
 | Editar evento         | ![Editar](docs/screenshots/organizador/03-editar-evento.png)        |
 | Eliminación bloqueada | ![Bloqueado](docs/screenshots/organizador/04-eliminar-bloqueado.png) |
 
+## Capturas del flujo asistente
+
+Capturas del recorrido típico de un asistente (registro → login → exploración → compra → mis entradas).
+Archivos en [`docs/screenshots/asistente/`](docs/screenshots/asistente/).
+
+| Pantalla         | Imagen                                                   |
+|------------------|----------------------------------------------------------|
+| Login            | ![Login](docs/screenshots/asistente/01-login.png)        |
+| Exploración      | ![Eventos](docs/screenshots/asistente/02-exploracion.png) |
+| Detalle con QR   | ![Detalle](docs/screenshots/asistente/03-detalle-qr.png) |
+| Mis entradas     | ![Tickets](docs/screenshots/asistente/04-mis-entradas.png) |
+
 ## Documentación técnica (Javadoc)
 
 La documentación técnica del proyecto se genera automáticamente en cada push a `main`
