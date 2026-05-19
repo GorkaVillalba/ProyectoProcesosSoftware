@@ -149,6 +149,18 @@ cubriendo todos los tramos de precio dinámico y 4 tickets (3 válidos + 1 cance
 | PUT | /api/events/{id} | Editar evento |
 | DELETE | /api/events/{id} | Eliminar evento |
 
+## Capturas del flujo asistente
+
+Capturas del recorrido típico de un asistente (registro → login → exploración → compra → mis entradas).
+Archivos en [`docs/screenshots/asistente/`](docs/screenshots/asistente/).
+
+| Pantalla         | Imagen                                                   |
+|------------------|----------------------------------------------------------|
+| Login            | ![Login](docs/screenshots/asistente/01-login.png)        |
+| Exploración      | ![Eventos](docs/screenshots/asistente/02-exploracion.png) |
+| Detalle con QR   | ![Detalle](docs/screenshots/asistente/03-detalle-qr.png) |
+| Mis entradas     | ![Tickets](docs/screenshots/asistente/04-mis-entradas.png) |
+
 ## Documentación técnica (Javadoc)
 
 La documentación técnica del proyecto se genera automáticamente en cada push a `main`
