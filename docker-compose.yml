@@ -31,7 +31,10 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: root
       JWT_SECRET: eventpass-prod-secret-key-que-debe-tener-al-menos-256-bits-segura-1234567890
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/eventpass?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:h2:mem:eventpass-demo;DB_CLOSE_DELAY=-1
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.h2.Driver
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: ""
     depends_on:
       mysql:
         condition: service_healthy
